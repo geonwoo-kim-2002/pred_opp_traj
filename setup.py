@@ -13,13 +13,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='a',
-    maintainer_email='apdnxn@naver.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    maintainer='Geon-Woo Kim',
+    maintainer_email='apdnxn@gmail.com',
+    description='Prediction of Opponent Trajectory in F1TENTH',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'detection_node = pred_opp_traj.detection:main',
         ],
     },
 )

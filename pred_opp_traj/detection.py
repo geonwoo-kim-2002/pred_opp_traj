@@ -15,6 +15,10 @@ from pred_msgs.msg import Detection
 # float32 yaw
 # float32 v
 
+# float32 x_var
+# float32 y_var
+# float32 yaw_var
+# float32 v_var
 class DetectionNode(Node):
     def __init__(self):
         super().__init__('detection_node')
@@ -66,7 +70,7 @@ class DetectionNode(Node):
 
                 if closest < 0.3:
                     detection_msg = Detection()
-                    detection_msg.header.stamp = self.get_clock().now().to_msg()
+                    detection_msg.dt = 0.
                     detection_msg.x = opp_x
                     detection_msg.y = opp_y
                     # print("angle: ", R.from_quat([opp_quat.w, opp_quat.x, opp_quat.y, opp_quat.z]).as_euler('zyx', degrees=False))
@@ -74,6 +78,12 @@ class DetectionNode(Node):
                     # print("opp_x: ", opp_x, "opp_y: ", opp_y)
                     detection_msg.yaw = R.from_quat([opp_quat.x, opp_quat.y, opp_quat.z, opp_quat.w]).as_euler('zyx', degrees=False)[0]
                     detection_msg.v = hypot(self.opp_odom.twist.twist.linear.x, self.opp_odom.twist.twist.linear.y)
+
+                    detection_msg.x_var = 0.05
+                    detection_msg.y_var = 0.05
+                    detection_msg.yaw_var = 0.05
+                    detection_msg.v_var = 0.05
+
                     self.detect_pub.publish(detection_msg)
 
                     marker = Marker()
@@ -85,7 +95,7 @@ class DetectionNode(Node):
                     marker.pose.position.x = opp_x
                     marker.pose.position.y = opp_y
                     marker.pose.orientation = opp_quat
-                    marker.scale.x = max(0.5, hypot(self.opp_odom.twist.twist.linear.x, self.opp_odom.twist.twist.linear.y) * 0.5)
+                    marker.scale.x = hypot(self.opp_odom.twist.twist.linear.x, self.opp_odom.twist.twist.linear.y) * 0.2
                     marker.scale.y = 0.2
                     marker.scale.z = 0.2
                     marker.color.r = 1.0
@@ -95,8 +105,6 @@ class DetectionNode(Node):
                     self.detect_marker_pub.publish(marker)
 
                     break
-
-            print("closest: ", hypot(ego_x - opp_x, ego_y - opp_y))
 
 def main():
     rclpy.init()

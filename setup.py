@@ -1,4 +1,6 @@
 from setuptools import find_packages, setup
+import os
+from glob import glob
 
 package_name = 'pred_opp_traj'
 
@@ -10,6 +12,10 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        (os.path.join('share', package_name, 'data', 'lane'), glob('data/lane/*')),
+        (os.path.join('share', package_name, 'data', 'path'), glob('data/path/*')),
+        (os.path.join('share', package_name, 'data', 'raceline'), glob('data/raceline/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -17,10 +23,11 @@ setup(
     maintainer_email='apdnxn@gmail.com',
     description='Prediction of Opponent Trajectory in F1TENTH',
     license='MIT',
-    tests_require=['pytest'],
+    # tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'detection_node = pred_opp_traj.detection:main',
+            'collect_detections = pred_opp_traj.collect_detections:main',
         ],
     },
 )

@@ -37,56 +37,91 @@ class CollectDetection(Node):
         center_path = pd.read_csv(f'{self.pkg_path}/data/path/{self.map}_path.csv')
         self.sp = Spline2D(center_path['x_m'], center_path['y_m'])
 
-        x_center = []
-        y_center = []
-        for i in np.arange(0.0, self.sp.s[-1], 0.1):
-            ix, iy = self.sp.calc_position(i)
-            x_center.append(ix)
-            y_center.append(iy)
+        try:
+            raceline_spline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_race_spline.csv')
+            print("Using precomputed raceline spline data.")
 
-        states = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_states.csv')
-        if len(x_center) != len(states['t_s']):
-            raise ValueError(f"Length of center path does not match length of states data. spline length: {len(x_center)}, states length: {len(states['t_s'])}")
+            for _, row in raceline_spline.iterrows():
+                new_detection = Detection()
+                new_detection.dt = row['dt']
+                new_detection.x = row['x']
+                new_detection.y = row['y']
+                new_detection.yaw = row['yaw']
+                new_detection.v = row['v']
+                new_detection.x_var = row['x_var']
+                new_detection.y_var = row['y_var']
+                new_detection.yaw_var = row['yaw_var']
+                new_detection.v_var = row['v_var']
+                self.detect_array.detections.append(new_detection)
 
-        raceline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_traj_race_cl.csv')
-        sp_race = Spline2D(raceline['x_m'], raceline['y_m'])
-        sp_race_v = Spline(sp_race.s, raceline['vx_mps'])
-        race_x = []
-        race_y = []
-        race_yaw = []
-        race_v = []
-        for i in np.arange(0.0, sp_race.s[-1], 0.01):
-            ix, iy = sp_race.calc_position(i)
-            iyaw = sp_race.calc_yaw(i)
-            race_x.append(ix)
-            race_y.append(iy)
-            race_yaw.append(iyaw)
-            race_v.append(sp_race_v.calc(i))
+        except:
+            print("Raceline spline data not found. Computing raceline spline.")
+            x_center = []
+            y_center = []
+            for i in np.arange(0.0, self.sp.s[-1], 0.1):
+                ix, iy = self.sp.calc_position(i)
+                x_center.append(ix)
+                y_center.append(iy)
 
-        for i, (cx, cy) in enumerate(zip(x_center, y_center)):
-            min_dist = 1000.
-            min_idx = -1
-            for j in range(len(race_x)):
-                dist = np.linalg.norm(np.array([cx, cy]) - np.array([race_x[j], race_y[j]]))
-                if dist < min_dist:
-                    min_dist = dist
-                    min_idx = j
+            states = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_states.csv')
+            if len(x_center) != len(states['t_s']):
+                raise ValueError(f"Length of center path does not match length of states data. spline length: {len(x_center)}, states length: {len(states['t_s'])}")
 
-            new_detection = Detection()
-            if i == 0:
-                new_detection.dt = states['t_s'][len(states['t_s']) - 1] - states['t_s'][len(states['t_s']) - 2]
-            else:
-                new_detection.dt = states['t_s'][i] - states['t_s'][i - 1]
-            new_detection.x = race_x[min_idx]
-            new_detection.y = race_y[min_idx]
-            new_detection.yaw = race_yaw[min_idx]
-            new_detection.v = race_v[min_idx]
-            new_detection.x_var = 0.5
-            new_detection.y_var = 0.5
-            new_detection.yaw_var = 0.1
-            new_detection.v_var = 0.5
+            raceline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_traj_race_cl.csv')
+            sp_race = Spline2D(raceline['x_m'], raceline['y_m'])
+            sp_race_v = Spline(sp_race.s, raceline['vx_mps'])
+            race_x = []
+            race_y = []
+            race_yaw = []
+            race_v = []
+            for i in np.arange(0.0, sp_race.s[-1], 0.01):
+                ix, iy = sp_race.calc_position(i)
+                iyaw = sp_race.calc_yaw(i)
+                race_x.append(ix)
+                race_y.append(iy)
+                race_yaw.append(iyaw)
+                race_v.append(sp_race_v.calc(i))
 
-            self.detect_array.detections.append(new_detection)
+            raceline_spline_list = []
+            for i, (cx, cy) in enumerate(zip(x_center, y_center)):
+                min_dist = 1000.
+                min_idx = -1
+                for j in range(len(race_x)):
+                    dist = np.linalg.norm(np.array([cx, cy]) - np.array([race_x[j], race_y[j]]))
+                    if dist < min_dist:
+                        min_dist = dist
+                        min_idx = j
+
+                new_detection = Detection()
+                if i == 0:
+                    new_detection.dt = states['t_s'][len(states['t_s']) - 1] - states['t_s'][len(states['t_s']) - 2]
+                else:
+                    new_detection.dt = states['t_s'][i] - states['t_s'][i - 1]
+                new_detection.x = race_x[min_idx]
+                new_detection.y = race_y[min_idx]
+                new_detection.yaw = race_yaw[min_idx]
+                new_detection.v = race_v[min_idx]
+                new_detection.x_var = 0.5
+                new_detection.y_var = 0.5
+                new_detection.yaw_var = 0.1
+                new_detection.v_var = 0.5
+                self.detect_array.detections.append(new_detection)
+
+                raceline_spline_list.append({
+                    'dt': new_detection.dt,
+                    'x': new_detection.x,
+                    'y': new_detection.y,
+                    'yaw': new_detection.yaw,
+                    'v': new_detection.v,
+                    'x_var': new_detection.x_var,
+                    'y_var': new_detection.y_var,
+                    'yaw_var': new_detection.yaw_var,
+                    'v_var': new_detection.v_var,
+                })
+
+            raceline_spline_df = pd.DataFrame(raceline_spline_list)
+            raceline_spline_df.to_csv(f'{self.pkg_path}/data/raceline/{self.map}_race_spline.csv', index=False)
+
         self.done_init = True
         print("Detections initialized.")
 

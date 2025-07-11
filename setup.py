@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'detection_node = pred_opp_traj.detection:main',
             'collect_detections = pred_opp_traj.collect_detections:main',
+            'gpr_opp_traj = pred_opp_traj.gpr_opp_traj:main',
         ],
     },
 )

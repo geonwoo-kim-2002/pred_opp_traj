@@ -9,7 +9,8 @@ from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker
 
 from pred_msgs.msg import Detection
-# std_msgs/Header header
+# float32 dt
+
 # float32 x
 # float32 y
 # float32 yaw
@@ -19,15 +20,16 @@ from pred_msgs.msg import Detection
 # float32 y_var
 # float32 yaw_var
 # float32 v_var
+
 class DetectionNode(Node):
     def __init__(self):
         super().__init__('detection_node')
-        self.laser_subscriber = self.create_subscription(LaserScan,'/scan',self.laser_callback,10)
-        self.ego_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/odom',self.ego_odom_callback,10)
-        self.opp_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/opp_odom',self.opp_odom_callback,10)
+        self.laser_subscriber = self.create_subscription(LaserScan,'/scan',self.laser_callback,1)
+        self.ego_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/odom',self.ego_odom_callback,1)
+        self.opp_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/opp_odom',self.opp_odom_callback,1)
 
-        self.detect_pub = self.create_publisher(Detection, '/detection', 10)
-        self.detect_marker_pub = self.create_publisher(Marker, '/detection_marker', 10)
+        self.detect_pub = self.create_publisher(Detection, '/detection', 1)
+        self.detect_marker_pub = self.create_publisher(Marker, '/detection_marker', 1)
 
         self.is_scan = False
         self.is_ego_odom = False
@@ -75,7 +77,7 @@ class DetectionNode(Node):
                     detection_msg.y = opp_y
                     # print("angle: ", R.from_quat([opp_quat.w, opp_quat.x, opp_quat.y, opp_quat.z]).as_euler('zyx', degrees=False))
                     # print("scan_x: ", scan_x, "scan_y: ", scan_y, "range: ", scan_range)
-                    # print("opp_x: ", opp_x, "opp_y: ", opp_y)
+
                     detection_msg.yaw = R.from_quat([opp_quat.x, opp_quat.y, opp_quat.z, opp_quat.w]).as_euler('zyx', degrees=False)[0]
                     detection_msg.v = hypot(self.opp_odom.twist.twist.linear.x, self.opp_odom.twist.twist.linear.y)
 

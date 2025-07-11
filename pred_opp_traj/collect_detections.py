@@ -9,9 +9,8 @@ from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation as R
 import time
 
-# from .Spline import Spline2D
 from pred_opp_traj.Spline import Spline, Spline2D
-from pred_msgs.msg import Detection
+from pred_msgs.msg import Detection, DetectionArray
 
 class CollectDetection(Node):
     def __init__(self):
@@ -20,16 +19,17 @@ class CollectDetection(Node):
 
         self.declare_parameter('map', 'levinelobby')
         self.done_init = False
-        self.detections = []
+        self.detect_array = DetectionArray()
         self.init_detections()
 
         self.prev_detection = None
         self.first_point = True
         self.prev_time = 0.0
         self.prev_opp_idx = None
-        self.detection_sub = self.create_subscription(Detection, '/detection', self.detection_callback, 10)
+        self.detection_sub = self.create_subscription(Detection, '/detection', self.detection_callback, 1)
 
-        self.detected_opp_traj_pub = self.create_publisher(MarkerArray, '/detected_opp_traj', 10)
+        self.detection_array_pub = self.create_publisher(DetectionArray, '/detected_opp_traj', 1)
+        self.detected_opp_traj_marker_pub = self.create_publisher(MarkerArray, '/detected_opp_traj_marker', 1)
         self.timer = self.create_timer(0.001, self.timer_callback)
 
     def init_detections(self):
@@ -81,12 +81,12 @@ class CollectDetection(Node):
             new_detection.y = race_y[min_idx]
             new_detection.yaw = race_yaw[min_idx]
             new_detection.v = race_v[min_idx]
-            new_detection.x_var = 10.
-            new_detection.y_var = 10.
-            new_detection.yaw_var = 3.141592
-            new_detection.v_var = 5.
+            new_detection.x_var = 0.5
+            new_detection.y_var = 0.5
+            new_detection.yaw_var = 0.1
+            new_detection.v_var = 0.5
 
-            self.detections.append(new_detection)
+            self.detect_array.detections.append(new_detection)
         self.done_init = True
         print("Detections initialized.")
 
@@ -97,11 +97,11 @@ class CollectDetection(Node):
 
         if msg != self.prev_detection and self.done_init:
             curr_opp_s = self.sp.find_s(msg.x, msg.y)
-            if (curr_opp_s * 100) % 10 <= 1 or (curr_opp_s * 100) % 10 >= 8:
+            if (curr_opp_s * 100) % 10 <= 2 or (curr_opp_s * 100) % 10 >= 7:
                 opp_idx = int(round(curr_opp_s, 1) * 10)
                 # print("prev_opp_idx:", self.prev_opp_idx, "opp_idx:", opp_idx, "first_point:", self.first_point)
-                if opp_idx >= len(self.detections):
-                    opp_idx -= len(self.detections)
+                if opp_idx >= len(self.detect_array.detections):
+                    opp_idx -= len(self.detect_array.detections)
 
                 if self.first_point:
                     self.first_point = False
@@ -111,21 +111,21 @@ class CollectDetection(Node):
                     curr_time = time.time()
                     dt = curr_time - self.prev_time
 
-                    if opp_idx - self.prev_opp_idx < -len(self.detections) / 2:
-                        for i in np.arange(self.prev_opp_idx, opp_idx + len(self.detections), 1):
-                            self.detections[(i + 1) % len(self.detections)].dt = dt / (opp_idx + len(self.detections) - self.prev_opp_idx)
+                    if opp_idx - self.prev_opp_idx < -len(self.detect_array.detections) / 2:
+                        for i in np.arange(self.prev_opp_idx, opp_idx + len(self.detect_array.detections), 1):
+                            self.detect_array.detections[(i + 1) % len(self.detect_array.detections)].dt = dt / (opp_idx + len(self.detect_array.detections) - self.prev_opp_idx)
                             # print("i+1:", (i + 1) % len(self.detections), "opp_idx:", opp_idx, "prev_opp_idx:", self.prev_opp_idx, "dt:", self.detections[(i + 1) % len(self.detections)].dt)
                     else:
                         for i in np.arange(self.prev_opp_idx, opp_idx, 1):
-                            self.detections[i + 1].dt = dt / (opp_idx - self.prev_opp_idx)
+                            self.detect_array.detections[i + 1].dt = dt / (opp_idx - self.prev_opp_idx)
                             # print("i+1:", i + 1, "opp_idx:", opp_idx, "prev_opp_idx:", self.prev_opp_idx, "dt:", self.detections[i + 1].dt)
 
                     self.prev_opp_idx = opp_idx
                     self.prev_time = curr_time
 
                 # print("time duration:", msg.dt)
-                msg.dt = self.detections[opp_idx].dt
-                self.detections[opp_idx] = msg
+                msg.dt = self.detect_array.detections[opp_idx].dt
+                self.detect_array.detections[opp_idx] = msg
                 self.prev_detection = msg
 
     def timer_callback(self):
@@ -133,14 +133,15 @@ class CollectDetection(Node):
             return
 
         marker_array = MarkerArray()
-        for i in range(len(self.detections)):
-            detection = self.detections[i]
+        for i in range(len(self.detect_array.detections)):
+            detection = self.detect_array.detections[i]
             marker = Marker()
             marker.header.frame_id = 'map'
             marker.header.stamp = self.get_clock().now().to_msg()
             marker.ns = 'detected_opp_traj'
             marker.id = i
-            marker.type = Marker.ARROW
+            # marker.type = Marker.ARROW
+            marker.type = Marker.SPHERE
             marker.action = Marker.ADD
 
             marker.pose.position.x = detection.x
@@ -151,19 +152,24 @@ class CollectDetection(Node):
             marker.pose.orientation.z = quat[2]
             marker.pose.orientation.w = quat[3]
 
-            marker.scale.x = max(0.1, detection.v * 0.01)
-            # marker.scale.x = 0.1
+            # marker.scale.x = max(0.1, detection.v * 0.01)
+            marker.scale.x = 0.05
             marker.scale.y = 0.05
             marker.scale.z = 0.05
 
-            marker.color.r = detection.v / 10.0
-            marker.color.g = 1.0 - abs(5.0 - detection.v) / 5.0
-            marker.color.b = 1.0 - detection.v / 10.0
+            # marker.color.r = detection.v / 10.0
+            # marker.color.g = 1.0 - abs(5.0 - detection.v) / 5.0
+            # marker.color.b = 1.0 - detection.v / 10.0
+            # marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0
             marker.color.a = 1.0
 
             marker_array.markers.append(marker)
 
-        self.detected_opp_traj_pub.publish(marker_array)
+        self.detection_array_pub.publish(self.detect_array)
+        self.detected_opp_traj_marker_pub.publish(marker_array)
 
 def main():
     rclpy.init()

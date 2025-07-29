@@ -24,7 +24,6 @@ setup(
     maintainer_email='apdnxn@gmail.com',
     description='Prediction of Opponent Trajectory in F1TENTH',
     license='MIT',
-    # tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'detection_node = pred_opp_traj.detection:main',

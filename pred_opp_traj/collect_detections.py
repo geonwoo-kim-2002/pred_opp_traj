@@ -17,7 +17,7 @@ class CollectDetection(Node):
         super().__init__('collect_detection_node')
         self.pkg_path = get_package_share_directory('pred_opp_traj')
 
-        self.declare_parameter('map', 'levinelobby')
+        self.declare_parameter('map', '')
         self.done_init = False
         self.detect_array = DetectionArray()
         self.init_detections()
@@ -64,8 +64,14 @@ class CollectDetection(Node):
                 y_center.append(iy)
 
             states = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_states.csv')
+            t_s = []
             if len(x_center) != len(states['t_s']):
-                raise ValueError(f"Length of center path does not match length of states data. spline length: {len(x_center)}, states length: {len(states['t_s'])}")
+                # t_s 보간
+                t_s = np.interp(np.arange(0.0, self.sp.s[-1], 0.1), states['s_m'], states['t_s'])
+            else:
+                t_s = states['t_s'].values
+            print(f"Length of center path: {len(x_center)}, Length of states data: {len(t_s)}\n", t_s)
+            # raise ValueError(f"Length of center path does not match length of states data. spline length: {len(x_center)}, states length: {len(states['t_s'])}")
 
             raceline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_traj_race_cl.csv')
             sp_race = Spline2D(raceline['x_m'], raceline['y_m'])
@@ -94,9 +100,9 @@ class CollectDetection(Node):
 
                 new_detection = Detection()
                 if i == 0:
-                    new_detection.dt = states['t_s'][len(states['t_s']) - 1] - states['t_s'][len(states['t_s']) - 2]
+                    new_detection.dt = t_s[len(t_s) - 1] - t_s[len(t_s) - 2]
                 else:
-                    new_detection.dt = states['t_s'][i] - states['t_s'][i - 1]
+                    new_detection.dt = t_s[i] - t_s[i - 1]
                 new_detection.x = race_x[min_idx]
                 new_detection.y = race_y[min_idx]
                 new_detection.yaw = race_yaw[min_idx]
@@ -169,7 +175,8 @@ class CollectDetection(Node):
 
         marker_array = MarkerArray()
         for i in range(len(self.detect_array.detections)):
-            detection = self.detect_array.detections[i]
+            if self.detect_array.detections[i].v >= 1.0:
+                detection = self.detect_array.detections[i]
             marker = Marker()
             marker.header.frame_id = 'map'
             marker.header.stamp = self.get_clock().now().to_msg()
@@ -190,7 +197,7 @@ class CollectDetection(Node):
             # marker.scale.x = max(0.1, detection.v * 0.01)
             marker.scale.x = 0.05
             marker.scale.y = 0.05
-            marker.scale.z = 0.05
+            marker.scale.z = 1e-5
 
             # marker.color.r = detection.v / 10.0
             # marker.color.g = 1.0 - abs(5.0 - detection.v) / 5.0

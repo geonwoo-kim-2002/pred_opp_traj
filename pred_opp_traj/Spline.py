@@ -7,7 +7,49 @@ Author: Atsushi Sakai
 import math
 import numpy as np
 import bisect
+from numba import njit
 
+@njit
+def spline_eval(a, b, c, d, x, t):
+    for i in range(len(x) - 1):
+        if x[i] <= t <= x[i + 1]:
+            dx = t - x[i]
+            return a[i] + b[i] * dx + c[i] * dx**2 + d[i] * dx**3
+    return 0.0  # 혹은 NaN
+
+@njit
+def spline_eval_d(b, c, d, x, t):
+    for i in range(len(x) - 1):
+        if x[i] <= t <= x[i + 1]:
+            dx = t - x[i]
+            return b[i] + 2.0 * c[i] * dx + 3.0 * d[i] * dx**2
+    return 0.0
+
+@njit
+def spline_eval_dd(c, d, x, t):
+    for i in range(len(x) - 1):
+        if x[i] <= t <= x[i + 1]:
+            dx = t - x[i]
+            return 2.0 * c[i] + 6.0 * d[i] * dx
+    return 0.0
+
+@njit
+def fast_find_s(s, ax, bx, cx, dx, ay, by, cy, dy, x, y, s_step=0.01):
+    s_closest = s[0]
+    closest = 1e10
+    si = s[0]
+
+    while si < s[-1]:
+        px = spline_eval(ax, bx, cx, dx, s, si)
+        py = spline_eval(ay, by, cy, dy, s, si)
+        dist = math.hypot(x - px, y - py)
+        if dist < closest:
+            closest = dist
+            s_closest = si
+        if dist < 0.001:
+            break
+        si += s_step
+    return s_closest
 
 class Spline:
     """
@@ -39,64 +81,72 @@ class Spline:
                 (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
             self.b.append(tb)
 
+    # def calc(self, t):
+    #     u"""
+    #     Calc position
+
+    #     if t is outside of the input x, return None
+
+    #     """
+
+    #     if t < self.x[0]:
+    #         return None
+    #     elif t > self.x[-1]:
+    #         return None
+
+    #     i = self.__search_index(t)
+    #     dx = t - self.x[i]
+    #     result = self.a[i] + self.b[i] * dx + \
+    #         self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
+
+    #     return result
+
+    # def calcd(self, t):
+    #     u"""
+    #     Calc first derivative
+
+    #     if t is outside of the input x, return None
+    #     """
+
+    #     if t < self.x[0]:
+    #         return None
+    #     elif t > self.x[-1]:
+    #         return None
+
+    #     i = self.__search_index(t)
+    #     dx = t - self.x[i]
+    #     result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
+    #     return result
+
+    # def calcdd(self, t):
+    #     u"""
+    #     Calc second derivative
+    #     """
+
+    #     if t < self.x[0]:
+    #         return None
+    #     elif t > self.x[-1]:
+    #         return None
+
+    #     i = self.__search_index(t)
+    #     dx = t - self.x[i]
+    #     result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
+    #     return result
     def calc(self, t):
-        u"""
-        Calc position
-
-        if t is outside of the input x, return None
-
-        """
-
-        if t < self.x[0]:
-            return None
-        elif t > self.x[-1]:
-            return None
-
-        i = self.__search_index(t)
-        dx = t - self.x[i]
-        result = self.a[i] + self.b[i] * dx + \
-            self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
-
-        return result
+        return spline_eval(self.a, self.b, self.c, self.d, self.x, t)
 
     def calcd(self, t):
-        u"""
-        Calc first derivative
-
-        if t is outside of the input x, return None
-        """
-
-        if t < self.x[0]:
-            return None
-        elif t > self.x[-1]:
-            return None
-
-        i = self.__search_index(t)
-        dx = t - self.x[i]
-        result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
-        return result
+        return spline_eval_d(self.b, self.c, self.d, self.x, t)
 
     def calcdd(self, t):
-        u"""
-        Calc second derivative
-        """
-
-        if t < self.x[0]:
-            return None
-        elif t > self.x[-1]:
-            return None
-
-        i = self.__search_index(t)
-        dx = t - self.x[i]
-        result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
-        return result
+        return spline_eval_dd(self.c, self.d, self.x, t)
 
     def __search_index(self, x):
         u"""
         search data segment index
         """
         return bisect.bisect(self.x, x) - 1
-    
+
     def __calc_A(self, h):
         u"""
         calc matrix A for spline coefficient c
@@ -143,7 +193,7 @@ class Spline2D:
         dy = np.diff(y)
         self.ds = [math.sqrt(idx ** 2 + idy ** 2)
                    for (idx, idy) in zip(dx, dy)]
-        s = [0]
+        s = [0.0]
         s.extend(np.cumsum(self.ds))
         return s
 
@@ -153,27 +203,34 @@ class Spline2D:
         """
         return bisect.bisect(self.s, s) - 1
 
-    def find_s(self, x, y):
-        u"""
-        calc spline s value from x, y
-        """
-        s_closest = self.s[0]
-        closest = float("inf")
-        si = self.s[0]
+    # def find_s(self, x, y):
+    #     u"""
+    #     calc spline s value from x, y
+    #     """
+    #     s_closest = self.s[0]
+    #     closest = float("inf")
+    #     si = self.s[0]
 
-        while si < self.s[-1]:
-            if si > self.s[-1]:
-                si -= self.s[-1]
-            px = self.sx.calc(si)
-            py = self.sy.calc(si)
-            dist = math.hypot(x - px, y - py)
-            if dist < closest:
-                closest = dist
-                s_closest = si
-            if dist < 0.001:
-                return s_closest
-            si += 0.01
-        return s_closest
+    #     while si < self.s[-1]:
+    #         if si > self.s[-1]:
+    #             si -= self.s[-1]
+    #         px = self.sx.calc(si)
+    #         py = self.sy.calc(si)
+    #         dist = math.hypot(x - px, y - py)
+    #         if dist < closest:
+    #             closest = dist
+    #             s_closest = si
+    #         if dist < 0.001:
+    #             return s_closest
+    #         si += 0.01
+    #     return s_closest
+    def find_s(self, x, y):
+        return fast_find_s(
+            self.s,
+            self.sx.a, self.sx.b, self.sx.c, self.sx.d,
+            self.sy.a, self.sy.b, self.sy.c, self.sy.d,
+            x, y
+        )
 
     def local_find_s(self,x, y, s0, search_range):
         s_closest = s0

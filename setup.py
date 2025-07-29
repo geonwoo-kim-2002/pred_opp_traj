@@ -16,6 +16,7 @@ setup(
         (os.path.join('share', package_name, 'data', 'lane'), glob('data/lane/*')),
         (os.path.join('share', package_name, 'data', 'path'), glob('data/path/*')),
         (os.path.join('share', package_name, 'data', 'raceline'), glob('data/raceline/*')),
+        (os.path.join('share', package_name, 'params'), glob('params/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,8 +28,8 @@ setup(
     entry_points={
         'console_scripts': [
             'detection_node = pred_opp_traj.detection:main',
-            'collect_detections = pred_opp_traj.collect_detections:main',
-            'gpr_opp_traj = pred_opp_traj.gpr_opp_traj:main',
+            'collect_detection_node = pred_opp_traj.collect_detections:main',
+            'gpr_opp_traj_node = pred_opp_traj.gpr_opp_traj:main',
         ],
     },
 )

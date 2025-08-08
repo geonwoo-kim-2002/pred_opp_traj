@@ -26,9 +26,7 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'detection_node = pred_opp_traj.detection:main',
-            'collect_detection_node = pred_opp_traj.collect_detections:main',
-            'gpr_opp_traj_node = pred_opp_traj.gpr_opp_traj:main',
+            'pred_opp_traj_service = pred_opp_traj.pred_opp_traj_service:main',
         ],
     },
 )

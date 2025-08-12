@@ -43,6 +43,6 @@ def detection(scan: LaserScan, ego_odom: Odometry, opp_odom: Odometry) -> Detect
             detection_msg.yaw_var = 0.05
             detection_msg.v_var = 0.05
             return detection_msg
-    print(closest, closest_x, closest_y, flush=True)
-    print(f'opp_x: {opp_x}, opp_y: {opp_y}, ego_x: {ego_x}, ego_y: {ego_y}', flush=True)
+    # print(closest, closest_x, closest_y, flush=True)
+    # print(f'opp_x: {opp_x}, opp_y: {opp_y}, ego_x: {ego_x}, ego_y: {ego_y}', flush=True)
     return None

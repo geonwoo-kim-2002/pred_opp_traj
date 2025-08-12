@@ -92,6 +92,10 @@ class PredOppTrajService(Node):
         request.scan.header.stamp = ts
         self.scan_pub.publish(request.scan)
 
+        if request.reset_collections:
+            self.detect_array, self.sp = init_detections(self.map, self.pkg_path)
+
+
         ego_t = Transform()
         ego_t.rotation.x = request.ego_odom.pose.pose.orientation.x
         ego_t.rotation.y = request.ego_odom.pose.pose.orientation.y
@@ -110,116 +114,126 @@ class PredOppTrajService(Node):
         self._publish_laser_transforms(ts)
 
         detected_opp = detection(request.scan, request.ego_odom, request.opp_odom)
-        if detected_opp is not None:
-            marker = Marker()
-            marker.header.frame_id = "map"
-            marker.header.stamp = self.get_clock().now().to_msg()
-            marker.id = 0
-            marker.type = Marker.ARROW
-            marker.action = Marker.ADD
-            marker.pose.position.x = detected_opp.x
-            marker.pose.position.y = detected_opp.y
-            quat = R.from_euler('z', detected_opp.yaw).as_quat()
-            marker.pose.orientation.x = quat[0]
-            marker.pose.orientation.y = quat[1]
-            marker.pose.orientation.z = quat[2]
-            marker.pose.orientation.w = quat[3]
-            marker.scale.x = detected_opp.v * 0.2
-            marker.scale.y = 0.2
-            marker.scale.z = 0.2
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 0.0
-            marker.color.a = 1.0
-            self.detect_marker_pub.publish(marker)
+        # if detected_opp is not None:
+        #     marker = Marker()
+        #     marker.header.frame_id = "map"
+        #     marker.header.stamp = self.get_clock().now().to_msg()
+        #     marker.id = 0
+        #     marker.type = Marker.ARROW
+        #     marker.action = Marker.ADD
+        #     marker.pose.position.x = detected_opp.x
+        #     marker.pose.position.y = detected_opp.y
+        #     quat = R.from_euler('z', detected_opp.yaw).as_quat()
+        #     marker.pose.orientation.x = quat[0]
+        #     marker.pose.orientation.y = quat[1]
+        #     marker.pose.orientation.z = quat[2]
+        #     marker.pose.orientation.w = quat[3]
+        #     marker.scale.x = detected_opp.v * 0.2
+        #     marker.scale.y = 0.2
+        #     marker.scale.z = 0.2
+        #     marker.color.r = 1.0
+        #     marker.color.g = 0.0
+        #     marker.color.b = 0.0
+        #     marker.color.a = 1.0
+        #     self.detect_marker_pub.publish(marker)
 
         if detected_opp is not None:
             get_detection_array(detected_opp, self.detect_array, self.sp, self.first_point, self.prev_time, self.prev_opp_idx)
 
-            marker_array = MarkerArray()
-            for i in range(len(self.detect_array.detections)):
-                detected = self.detect_array.detections[i]
-                marker = Marker()
-                marker.header.frame_id = 'map'
-                marker.header.stamp = self.get_clock().now().to_msg()
-                marker.ns = 'detected_opp_traj'
-                marker.id = i
-                marker.type = Marker.SPHERE
-                marker.action = Marker.ADD
+            # marker_array = MarkerArray()
+            # for i in range(len(self.detect_array.detections)):
+            #     detected = self.detect_array.detections[i]
+            #     marker = Marker()
+            #     marker.header.frame_id = 'map'
+            #     marker.header.stamp = self.get_clock().now().to_msg()
+            #     marker.ns = 'detected_opp_traj'
+            #     marker.id = i
+            #     marker.type = Marker.SPHERE
+            #     marker.action = Marker.ADD
 
-                marker.pose.position.x = detected.x
-                marker.pose.position.y = detected.y
-                quat = R.from_euler('z', detected.yaw).as_quat()
-                marker.pose.orientation.x = quat[0]
-                marker.pose.orientation.y = quat[1]
-                marker.pose.orientation.z = quat[2]
-                marker.pose.orientation.w = quat[3]
+            #     marker.pose.position.x = detected.x
+            #     marker.pose.position.y = detected.y
+            #     quat = R.from_euler('z', detected.yaw).as_quat()
+            #     marker.pose.orientation.x = quat[0]
+            #     marker.pose.orientation.y = quat[1]
+            #     marker.pose.orientation.z = quat[2]
+            #     marker.pose.orientation.w = quat[3]
 
-                marker.scale.x = 0.05
-                marker.scale.y = 0.05
-                marker.scale.z = 1e-5
-                marker.color.r = 0.0
-                marker.color.g = 1.0
-                marker.color.b = 0.0
-                marker.color.a = 1.0
+            #     marker.scale.x = 0.05
+            #     marker.scale.y = 0.05
+            #     marker.scale.z = 1e-5
+            #     marker.color.r = 0.0
+            #     marker.color.g = 1.0
+            #     marker.color.b = 0.0
+            #     marker.color.a = 1.0
 
-                marker_array.markers.append(marker)
-            self.detected_opp_traj_marker_pub.publish(marker_array)
+            #     marker_array.markers.append(marker)
+            # self.detected_opp_traj_marker_pub.publish(marker_array)
 
         if detected_opp is not None and self.detect_array is not None:
-            pred_opp_traj = gpr_pred_opp_traj(detected_opp, self.detect_array, self.horizon, self.dt, self.sp)
-            response.pred_opp_traj = pred_opp_traj
-            print(f"Predicted {len(pred_opp_traj.detections)} future detections.", flush=True)
-            marker_array = MarkerArray()
-            for i in range(len(pred_opp_traj.detections)):
-                marker = Marker()
-                marker.header.frame_id = 'map'
-                marker.header.stamp = self.get_clock().now().to_msg()
-                marker.ns = 'pred_opp_traj'
-                marker.id = i
-                marker.type = Marker.SPHERE
-                marker.action = Marker.ADD
+            ego_s = self.sp.find_s(request.ego_odom.pose.pose.position.x, request.ego_odom.pose.pose.position.y)
+            opp_s = self.sp.find_s(detected_opp.x, detected_opp.y)
+            if opp_s - ego_s < -self.sp.s[-1] / 2:
+                opp_s += self.sp.s[-1]
+            elif opp_s - ego_s > self.sp.s[-1] / 2:
+                opp_s -= self.sp.s[-1]
 
-                marker.pose.position.x = pred_opp_traj.detections[i].x
-                marker.pose.position.y = pred_opp_traj.detections[i].y
-                quat = R.from_euler('z', pred_opp_traj.detections[i].yaw).as_quat()
-                marker.pose.orientation.x = quat[0]
-                marker.pose.orientation.y = quat[1]
-                marker.pose.orientation.z = quat[2]
-                marker.pose.orientation.w = quat[3]
-                marker.pose.orientation.w = 1.0
+            if abs(opp_s - ego_s) <= 5.0:
+                pred_opp_traj = gpr_pred_opp_traj(detected_opp, self.detect_array, self.horizon, self.dt, self.sp)
+                response.pred_opp_traj = pred_opp_traj
+                # print(f"Predicted {len(pred_opp_traj.detections)} future detections.", flush=True)
+                # marker_array = MarkerArray()
+                # for i in range(len(pred_opp_traj.detections)):
+                #     marker = Marker()
+                #     marker.header.frame_id = 'map'
+                #     marker.header.stamp = self.get_clock().now().to_msg()
+                #     marker.ns = 'pred_opp_traj'
+                #     marker.id = i
+                #     marker.type = Marker.SPHERE
+                #     marker.action = Marker.ADD
 
-                marker.scale.x = 0.1
-                marker.scale.y = 0.1
-                marker.scale.z = 1e-5
-                marker.color.r = pred_opp_traj.detections[i].v / 10.0
-                marker.color.g = 0.0
-                marker.color.b = -(pred_opp_traj.detections[i].v - 10.0) / 10.0
-                marker.color.a = 1.0
-                marker_array.markers.append(marker)
+                #     marker.pose.position.x = pred_opp_traj.detections[i].x
+                #     marker.pose.position.y = pred_opp_traj.detections[i].y
+                #     quat = R.from_euler('z', pred_opp_traj.detections[i].yaw).as_quat()
+                #     marker.pose.orientation.x = quat[0]
+                #     marker.pose.orientation.y = quat[1]
+                #     marker.pose.orientation.z = quat[2]
+                #     marker.pose.orientation.w = quat[3]
+                #     marker.pose.orientation.w = 1.0
 
-                marker = Marker()
-                marker.header.frame_id = 'map'
-                marker.header.stamp = self.get_clock().now().to_msg()
-                marker.ns = 'pred_opp_traj'
-                marker.id = i + 100
-                marker.type = Marker.SPHERE
-                marker.action = Marker.ADD
+                #     marker.scale.x = 0.1
+                #     marker.scale.y = 0.1
+                #     marker.scale.z = 1e-5
+                #     marker.color.r = pred_opp_traj.detections[i].v / 10.0
+                #     marker.color.g = 0.0
+                #     marker.color.b = -(pred_opp_traj.detections[i].v - 10.0) / 10.0
+                #     marker.color.a = 1.0
+                #     marker_array.markers.append(marker)
 
-                marker.pose.position.x = pred_opp_traj.detections[i].x
-                marker.pose.position.y = pred_opp_traj.detections[i].y
-                marker.pose.orientation.w = 1.0
+                #     marker = Marker()
+                #     marker.header.frame_id = 'map'
+                #     marker.header.stamp = self.get_clock().now().to_msg()
+                #     marker.ns = 'pred_opp_traj'
+                #     marker.id = i + 100
+                #     marker.type = Marker.SPHERE
+                #     marker.action = Marker.ADD
 
-                marker.scale.x = pred_opp_traj.detections[i].x_var * 2
-                marker.scale.y = pred_opp_traj.detections[i].y_var * 2
-                marker.scale.z = 0.0
+                #     marker.pose.position.x = pred_opp_traj.detections[i].x
+                #     marker.pose.position.y = pred_opp_traj.detections[i].y
+                #     marker.pose.orientation.w = 1.0
 
-                marker.color.r = 0.0
-                marker.color.g = 0.0
-                marker.color.b = 0.0
-                marker.color.a = 0.1
-                marker_array.markers.append(marker)
-            self.pred_opp_traj_marker_pub.publish(marker_array)
+                #     marker.scale.x = pred_opp_traj.detections[i].x_var * 2
+                #     marker.scale.y = pred_opp_traj.detections[i].y_var * 2
+                #     marker.scale.z = 0.0
+
+                #     marker.color.r = 0.0
+                #     marker.color.g = 0.0
+                #     marker.color.b = 0.0
+                #     marker.color.a = 0.1
+                #     marker_array.markers.append(marker)
+                # self.pred_opp_traj_marker_pub.publish(marker_array)
+            else:
+                response.pred_opp_traj = DetectionArray()
         else:
             response.pred_opp_traj = DetectionArray()
         print(f'Predicted Opponent Trajectory Service called in {time.time() - curr_time:.2f} seconds.', flush=True)

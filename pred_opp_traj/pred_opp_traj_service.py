@@ -95,7 +95,6 @@ class PredOppTrajService(Node):
         if request.reset_collections:
             self.detect_array, self.sp = init_detections(self.map, self.pkg_path)
 
-
         ego_t = Transform()
         ego_t.rotation.x = request.ego_odom.pose.pose.orientation.x
         ego_t.rotation.y = request.ego_odom.pose.pose.orientation.y
@@ -178,7 +177,7 @@ class PredOppTrajService(Node):
             elif opp_s - ego_s > self.sp.s[-1] / 2:
                 opp_s -= self.sp.s[-1]
 
-            if abs(opp_s - ego_s) <= 5.0:
+            if abs(opp_s - ego_s) <= 7.0:
                 pred_opp_traj = gpr_pred_opp_traj(detected_opp, self.detect_array, self.horizon, self.dt, self.sp)
                 response.pred_opp_traj = pred_opp_traj
                 # print(f"Predicted {len(pred_opp_traj.detections)} future detections.", flush=True)
@@ -236,7 +235,7 @@ class PredOppTrajService(Node):
                 response.pred_opp_traj = DetectionArray()
         else:
             response.pred_opp_traj = DetectionArray()
-        print(f'Predicted Opponent Trajectory Service called in {time.time() - curr_time:.2f} seconds.', flush=True)
+        # print(f'Predicted Opponent Trajectory Service called in {time.time() - curr_time:.2f} seconds.', flush=True)
         return response
 
 def main():

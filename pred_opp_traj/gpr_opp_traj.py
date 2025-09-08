@@ -37,10 +37,10 @@ def gpr_pred_opp_traj(curr_opp: Detection, detection_array: DetectionArray, hori
                 da_copy[idx].dt = da_copy[idx - 1].dt + da_copy[idx].dt
             sorted_detection_array.detections.append(da_copy[idx])
 
-        x_var = np.hstack((np.array([0.0]), np.array([d.x_var for d in sorted_detection_array.detections])))
-        y_var = np.hstack((np.array([0.0]), np.array([d.y_var for d in sorted_detection_array.detections])))
-        yaw_var = np.hstack((np.array([0.0]), np.array([d.yaw_var for d in sorted_detection_array.detections])))
-        v_var = np.hstack((np.array([0.0]), np.array([d.v_var for d in sorted_detection_array.detections])))
+        x_var = np.hstack((np.array([0.01]), np.array([d.x_var for d in sorted_detection_array.detections])))
+        y_var = np.hstack((np.array([0.01]), np.array([d.y_var for d in sorted_detection_array.detections])))
+        yaw_var = np.hstack((np.array([0.01]), np.array([d.yaw_var for d in sorted_detection_array.detections])))
+        v_var = np.hstack((np.array([0.01]), np.array([d.v_var for d in sorted_detection_array.detections])))
         c_kernel_x = ConstantKernel(0.5, constant_value_bounds=(1e-3, 1e3))
         c_kernel_y = ConstantKernel(0.5, constant_value_bounds=(1e-3, 1e3))
         c_kernel_yaw = ConstantKernel(0.5, constant_value_bounds=(1e-3, 1e3))

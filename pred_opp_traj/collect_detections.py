@@ -78,10 +78,10 @@ def init_detections(map, pkg_path) -> tuple[DetectionArray, Spline2D]:
             new_detection.y = race_y[min_idx]
             new_detection.yaw = race_yaw[min_idx]
             new_detection.v = race_v[min_idx]
-            new_detection.x_var = 0.5
-            new_detection.y_var = 0.5
-            new_detection.yaw_var = 0.1
-            new_detection.v_var = 0.5
+            new_detection.x_var = 1.0
+            new_detection.y_var = 1.0
+            new_detection.yaw_var = 0.5
+            new_detection.v_var = 1.0
             detect_array.detections.append(new_detection)
 
             raceline_spline_list.append({
@@ -99,7 +99,7 @@ def init_detections(map, pkg_path) -> tuple[DetectionArray, Spline2D]:
         raceline_spline_df = pd.DataFrame(raceline_spline_list)
         raceline_spline_df.to_csv(f'{pkg_path}/data/raceline/{map}_race_spline.csv', index=False)
 
-    print("Detections initialized.", flush=True)
+    print("Detections initialized.", time.time(), flush=True)
     return detect_array, sp
 
 def get_detection_array(detected_opp: Detection, detect_array: DetectionArray, sp: Spline2D, first_point: bool, prev_time: float, prev_opp_idx: int):

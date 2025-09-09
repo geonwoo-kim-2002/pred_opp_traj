@@ -42,11 +42,11 @@ class GPROppTraj(Node):
 
     def detection_callback(self, msg):
         self.curr_opp = msg
-        # print("detection callback")
+        # print("detection callback", flush=True)
 
     def detection_array_callback(self, msg):
         self.detection_array = msg
-        # print("detection array callback")
+        # print("detection array callback", flush=True)
 
     def timer_callback(self):
         curr_time = time.time()
@@ -114,13 +114,13 @@ class GPROppTraj(Node):
                 self.pred_opp_traj_pub.publish(self.pred_opp_traj)
                 self.pred_opp_traj_marker_pub.publish(marker_array)
                 self.prev_opp = self.curr_opp
-                print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time)
+                # print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, flush=True)
 
             else:
                 curr_opp_s = self.sp.find_s(self.curr_opp.x, self.curr_opp.y)
                 back_opp_idx = int(floor(curr_opp_s * 10)) % len(self.detection_array.detections)
                 front_opp_idx = int(ceil(curr_opp_s * 10)) % len(self.detection_array.detections)
-                # print("Current Opponent S:", curr_opp_s, "Back Index:", back_opp_idx, "Front Index:", front_opp_idx)
+                # print("Current Opponent S:", curr_opp_s, "Back Index:", back_opp_idx, "Front Index:", front_opp_idx, flush=True)
 
                 da_copy = copy.deepcopy(self.detection_array.detections)
                 sorted_detection_array = DetectionArray()
@@ -231,7 +231,7 @@ class GPROppTraj(Node):
                 self.pred_opp_traj_pub.publish(self.pred_opp_traj)
                 self.pred_opp_traj_marker_pub.publish(marker_array)
                 self.prev_opp = self.curr_opp
-                print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, len(pred_x))
+                # print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, len(pred_x), flush=True)
 
 def main():
     rclpy.init()

@@ -39,7 +39,7 @@ class CollectDetection(Node):
 
         try:
             raceline_spline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_race_spline.csv')
-            print("Using precomputed raceline spline data.")
+            print("Using precomputed raceline spline data.", flush=True)
 
             for _, row in raceline_spline.iterrows():
                 new_detection = Detection()
@@ -55,7 +55,7 @@ class CollectDetection(Node):
                 self.detect_array.detections.append(new_detection)
 
         except:
-            print("Raceline spline data not found. Computing raceline spline.")
+            print("Raceline spline data not found. Computing raceline spline.", flush=True)
             x_center = []
             y_center = []
             for i in np.arange(0.0, self.sp.s[-1], 0.1):
@@ -70,7 +70,7 @@ class CollectDetection(Node):
                 t_s = np.interp(np.arange(0.0, self.sp.s[-1], 0.1), states['s_m'], states['t_s'])
             else:
                 t_s = states['t_s'].values
-            print(f"Length of center path: {len(x_center)}, Length of states data: {len(t_s)}\n", t_s)
+            print(f"Length of center path: {len(x_center)}, Length of states data: {len(t_s)}\n", t_s, flush=True)
             # raise ValueError(f"Length of center path does not match length of states data. spline length: {len(x_center)}, states length: {len(states['t_s'])}")
 
             raceline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_traj_race_cl.csv')
@@ -129,18 +129,18 @@ class CollectDetection(Node):
             raceline_spline_df.to_csv(f'{self.pkg_path}/data/raceline/{self.map}_race_spline.csv', index=False)
 
         self.done_init = True
-        print("Detections initialized.")
+        print("Detections initialized.", flush=True)
 
     def detection_callback(self, msg):
         if time.time() - self.prev_time >= 0.5:
-            # print("time duration:", time.time() - self.prev_time)
+            # print("time duration:", time.time() - self.prev_time, flush=True)
             self.first_point = True
 
         if msg != self.prev_detection and self.done_init:
             curr_opp_s = self.sp.find_s(msg.x, msg.y)
             if (curr_opp_s * 100) % 10 <= 2 or (curr_opp_s * 100) % 10 >= 7:
                 opp_idx = int(round(curr_opp_s, 1) * 10)
-                # print("prev_opp_idx:", self.prev_opp_idx, "opp_idx:", opp_idx, "first_point:", self.first_point)
+                # print("prev_opp_idx:", self.prev_opp_idx, "opp_idx:", opp_idx, "first_point:", self.first_point, flush=True)
                 if opp_idx >= len(self.detect_array.detections):
                     opp_idx -= len(self.detect_array.detections)
 
@@ -155,16 +155,16 @@ class CollectDetection(Node):
                     if opp_idx - self.prev_opp_idx < -len(self.detect_array.detections) / 2:
                         for i in np.arange(self.prev_opp_idx, opp_idx + len(self.detect_array.detections), 1):
                             self.detect_array.detections[(i + 1) % len(self.detect_array.detections)].dt = dt / (opp_idx + len(self.detect_array.detections) - self.prev_opp_idx)
-                            # print("i+1:", (i + 1) % len(self.detections), "opp_idx:", opp_idx, "prev_opp_idx:", self.prev_opp_idx, "dt:", self.detections[(i + 1) % len(self.detections)].dt)
+                            # print("i+1:", (i + 1) % len(self.detections), "opp_idx:", opp_idx, "prev_opp_idx:", self.prev_opp_idx, "dt:", self.detections[(i + 1) % len(self.detections)].dt, flush=True)
                     else:
                         for i in np.arange(self.prev_opp_idx, opp_idx, 1):
                             self.detect_array.detections[i + 1].dt = dt / (opp_idx - self.prev_opp_idx)
-                            # print("i+1:", i + 1, "opp_idx:", opp_idx, "prev_opp_idx:", self.prev_opp_idx, "dt:", self.detections[i + 1].dt)
+                            # print("i+1:", i + 1, "opp_idx:", opp_idx, "prev_opp_idx:", self.prev_opp_idx, "dt:", self.detections[i + 1].dt, flush=True)
 
                     self.prev_opp_idx = opp_idx
                     self.prev_time = curr_time
 
-                # print("time duration:", msg.dt)
+                # print("time duration:", msg.dt, flush=True)
                 msg.dt = self.detect_array.detections[opp_idx].dt
                 self.detect_array.detections[opp_idx] = msg
                 self.prev_detection = msg

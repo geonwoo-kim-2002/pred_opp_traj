@@ -1,5 +1,5 @@
 /**:
   ros__parameters:
-    map: 'iccas2024_in'
+    map: 'map7'
     horizon: 40
     dt: 0.04

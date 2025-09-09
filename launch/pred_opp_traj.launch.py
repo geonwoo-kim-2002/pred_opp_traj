@@ -18,18 +18,21 @@ def generate_launch_description():
         executable='detection_node',
         name='detection_node',
         parameters=[config],
+        output='screen'
     )
     collect_detection_node = Node(
         package='pred_opp_traj',
         executable='collect_detection_node',
         name='collect_detection_node',
         parameters=[config],
+        output='screen'
     )
     gpr_opp_traj_node = Node(
         package='pred_opp_traj',
         executable='gpr_opp_traj_node',
         name='gpr_opp_traj_node',
         parameters=[config],
+        output='screen'
     )
     ld.add_action(detection_node)
     ld.add_action(collect_detection_node)

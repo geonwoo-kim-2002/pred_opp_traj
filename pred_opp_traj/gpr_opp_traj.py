@@ -51,7 +51,7 @@ class GPROppTraj(Node):
     def timer_callback(self):
         curr_time = time.time()
         if self.curr_opp is not None and self.detection_array is not None:
-            if self.curr_opp.v < 0.5:
+            if self.curr_opp.v < 0.0:
                 self.pred_opp_traj = DetectionArray()
                 marker_array = MarkerArray()
                 for i in range(self.horizon):
@@ -114,7 +114,7 @@ class GPROppTraj(Node):
                 self.pred_opp_traj_pub.publish(self.pred_opp_traj)
                 self.pred_opp_traj_marker_pub.publish(marker_array)
                 self.prev_opp = self.curr_opp
-                # print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, flush=True)
+                print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, flush=True)
 
             else:
                 curr_opp_s = self.sp.find_s(self.curr_opp.x, self.curr_opp.y)
@@ -124,7 +124,7 @@ class GPROppTraj(Node):
 
                 da_copy = copy.deepcopy(self.detection_array.detections)
                 sorted_detection_array = DetectionArray()
-                for i in range(int((self.horizon + 5) * self.dt * 10) * 10):
+                for i in range(int((self.horizon + 5) * self.dt * 3.7) * 10):
                     idx = (front_opp_idx + i) % len(da_copy)
                     if idx == front_opp_idx:
                         da_copy[idx].dt = (1 - (curr_opp_s * 10 - back_opp_idx)) * da_copy[idx].dt
@@ -231,7 +231,7 @@ class GPROppTraj(Node):
                 self.pred_opp_traj_pub.publish(self.pred_opp_traj)
                 self.pred_opp_traj_marker_pub.publish(marker_array)
                 self.prev_opp = self.curr_opp
-                # print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, len(pred_x), flush=True)
+                print("GPR Opponent Trajectory Prediction Time:", time.time() - curr_time, len(pred_x), flush=True)
 
 def main():
     rclpy.init()

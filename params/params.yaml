@@ -3,3 +3,4 @@
     map: 'map7'
     horizon: 40
     dt: 0.04
+    is_simulation: False

@@ -70,7 +70,7 @@ class CollectDetection(Node):
                 t_s = np.interp(np.arange(0.0, self.sp.s[-1], 0.1), states['s_m'], states['t_s'])
             else:
                 t_s = states['t_s'].values
-            print(f"Length of center path: {len(x_center)}, Length of states data: {len(t_s)}\n", t_s, flush=True)
+            print(f"Length of center path: {len(x_center)}, Length of states data: {len(t_s)}\n", t_s[-1], flush=True)
             # raise ValueError(f"Length of center path does not match length of states data. spline length: {len(x_center)}, states length: {len(states['t_s'])}")
 
             raceline = pd.read_csv(f'{self.pkg_path}/data/raceline/{self.map}_traj_race_cl.csv')
@@ -175,8 +175,8 @@ class CollectDetection(Node):
 
         marker_array = MarkerArray()
         for i in range(len(self.detect_array.detections)):
-            if self.detect_array.detections[i].v >= 1.0:
-                detection = self.detect_array.detections[i]
+            # if self.detect_array.detections[i].v >= 1.0:
+            detection = self.detect_array.detections[i]
             marker = Marker()
             marker.header.frame_id = 'map'
             marker.header.stamp = self.get_clock().now().to_msg()

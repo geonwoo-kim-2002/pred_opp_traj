@@ -2,14 +2,13 @@
 ```bash
 mamba env create -n pred_opp_traj python=3.10
 echo 'alias mam_pred_opp_traj='\''cd ~/<your_workspace> && mamba activate pred_opp_traj && export PYTHONPATH="/home/<your_name>/miniforge3/envs/pred_opp_traj/lib/python3.10/site-packages:$PYTHONPATH" && export PYTHONPATH=$PYTHONPATH:/home/<your_name>/<your_workspace>/src/pred_opp_traj'\''' >> ~/.bashrc
-
 ```
 </br>
 
 **Install Dependencies**
 ```bash
 mam_pred_opp_traj
-pip install numpy==1.24.4 pandas==2.2.2 scipy==1.8.0 numba==0.61.2 empy==3.3.4 catkin_pkg==1.0.0 lark==1.1.1 scikit-learn==1.5.2
+pip install -r src/pred_opp_traj/requirements.txt
 ```
 </br>
 

@@ -107,10 +107,10 @@ class CollectDetection(Node):
                 new_detection.y = race_y[min_idx]
                 new_detection.yaw = race_yaw[min_idx]
                 new_detection.v = race_v[min_idx]
-                new_detection.x_var = 0.5
-                new_detection.y_var = 0.5
-                new_detection.yaw_var = 0.1
-                new_detection.v_var = 0.5
+                new_detection.x_var = 1.0
+                new_detection.y_var = 1.0
+                new_detection.yaw_var = 0.5
+                new_detection.v_var = 1.0
                 self.detect_array.detections.append(new_detection)
 
                 raceline_spline_list.append({

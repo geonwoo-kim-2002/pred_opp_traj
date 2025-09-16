@@ -33,15 +33,16 @@ class DetectionNode(Node):
         self.is_ego_odom = False
         self.is_opp_odom = False
         self.opp_boxes = Detection2DArray()
-        
+
         if self.is_simulation:
             self.laser_subscriber = self.create_subscription(LaserScan,'/scan',self.laser_callback,1)
             self.ego_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/odom',self.ego_odom_callback,1)
             self.opp_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/opp_odom',self.opp_odom_callback,1)
         else:
             self.laser_subscriber = self.create_subscription(LaserScan,'/scan',self.laser_callback,1)
-            self.ego_pose_subscriber = self.create_subscription(PoseStamped,'/mcl_pose',self.ego_pose_callback,1)
-            self.opp_box_subscriber = self.create_subscription(Detection2DArray,'/bounding_box',self.opp_box_callback,1)            
+            # self.ego_pose_subscriber = self.create_subscription(PoseStamped,'/mcl_pose',self.ego_pose_callback,1)
+            self.ego_odom_subscriber = self.create_subscription(Odometry,'/ego_racecar/odom',self.ego_odom_callback,1)
+            self.opp_box_subscriber = self.create_subscription(Detection2DArray,'/bounding_box',self.opp_box_callback,1)
 
         self.detect_pub = self.create_publisher(Detection, '/detection', 1)
         self.detect_marker_pub = self.create_publisher(Marker, '/detection_marker', 1)
@@ -56,16 +57,19 @@ class DetectionNode(Node):
     def ego_odom_callback(self, msg):
         self.is_ego_odom = True
         self.ego_odom = msg
+        self.ego_pose = PoseStamped()
+        self.ego_pose.pose = msg.pose.pose
+        self.ego_pose.header = msg.header
 
     def opp_odom_callback(self, msg):
         self.is_opp_odom = True
         self.opp_odom = msg
-    
+
     def ego_pose_callback(self, msg):
         self.is_ego_odom = True
         self.ego_pose = msg
         # print("ego callback", flush=True)
-        
+
     def opp_box_callback(self, msg):
         self.opp_boxes = msg
 
@@ -136,13 +140,13 @@ class DetectionNode(Node):
                     ego_y = self.ego_pose.pose.position.y
                     ego_quat = self.ego_pose.pose.orientation
                     ego_yaw = R.from_quat([ego_quat.x, ego_quat.y, ego_quat.z, ego_quat.w]).as_euler('zyx', degrees=False)[0]
-                    
+
                     opp_local_x = self.opp_boxes.detections[0].bbox.center.position.x
                     opp_local_y = self.opp_boxes.detections[0].bbox.center.position.y
-                                       
+
                     opp_x = ego_x + opp_local_x * cos(ego_yaw) - opp_local_y * sin(ego_yaw)
                     opp_y = ego_y + opp_local_x * sin(ego_yaw) + opp_local_y * cos(ego_yaw)
-                    
+
                     detection_msg = Detection()
                     detection_msg.dt = 0.
                     detection_msg.x = opp_x

@@ -70,6 +70,7 @@ class PredOppTrajService(Node):
             marker_array.markers.append(marker)
         self.detected_opp_traj_marker_pub.publish(marker_array)
         self.prev_time = 0.0
+        self.curr_time = 0.0
         self.first_point = True
         self.prev_opp_idx = None
 
@@ -94,6 +95,8 @@ class PredOppTrajService(Node):
 
         if request.reset_collections:
             self.detect_array, self.sp = init_detections(self.map, self.pkg_path)
+            self.prev_time = 0.0
+            self.curr_time = 0.0
 
         ego_t = Transform()
         ego_t.rotation.x = request.ego_odom.pose.pose.orientation.x
@@ -136,8 +139,12 @@ class PredOppTrajService(Node):
         #     marker.color.a = 1.0
         #     self.detect_marker_pub.publish(marker)
 
+        self.curr_time += 0.025
         if detected_opp is not None:
-            get_detection_array(detected_opp, self.detect_array, self.sp, self.first_point, self.prev_time, self.prev_opp_idx)
+            is_collected, self.detect_array, self.first_point, self.prev_opp_idx = get_detection_array(detected_opp, self.detect_array, self.sp, self.first_point, self.curr_time - self.prev_time, self.prev_opp_idx)
+            if is_collected:
+                self.prev_time = self.curr_time
+            # print(f'dt: {dt}', flush=True)
 
             # marker_array = MarkerArray()
             # for i in range(len(self.detect_array.detections)):

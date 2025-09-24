@@ -102,24 +102,22 @@ def init_detections(map, pkg_path) -> tuple[DetectionArray, Spline2D]:
     print("Detections initialized.", time.time(), flush=True)
     return detect_array, sp
 
-def get_detection_array(detected_opp: Detection, detect_array: DetectionArray, sp: Spline2D, first_point: bool, prev_time: float, prev_opp_idx: int):
-    if time.time() - prev_time >= 0.5:
+def get_detection_array(detected_opp: Detection, detect_array: DetectionArray, sp: Spline2D, first_point: bool, dt: float, prev_opp_idx: int):
+    if dt >= 0.1:
         first_point = True
 
     curr_opp_s = sp.find_s(detected_opp.x, detected_opp.y)
+    is_collected = False
     if (curr_opp_s * 100) % 10 <= 2 or (curr_opp_s * 100) % 10 >= 7:
+        is_collected = True
         opp_idx = int(round(curr_opp_s, 1) * 10)
         if opp_idx >= len(detect_array.detections):
             opp_idx -= len(detect_array.detections)
 
         if first_point:
             first_point = False
-            prev_time = time.time()
             prev_opp_idx = opp_idx
         else:
-            curr_time = time.time()
-            dt = curr_time - prev_time
-
             if opp_idx - prev_opp_idx < -len(detect_array.detections) / 2:
                 for i in np.arange(prev_opp_idx, opp_idx + len(detect_array.detections), 1):
                     detect_array.detections[(i + 1) % len(detect_array.detections)].dt = dt / (opp_idx + len(detect_array.detections) - prev_opp_idx)
@@ -128,7 +126,8 @@ def get_detection_array(detected_opp: Detection, detect_array: DetectionArray, s
                     detect_array.detections[i + 1].dt = dt / (opp_idx - prev_opp_idx)
 
             prev_opp_idx = opp_idx
-            prev_time = curr_time
 
         detected_opp.dt = detect_array.detections[opp_idx].dt
         detect_array.detections[opp_idx] = detected_opp
+
+    return is_collected, detect_array, first_point, prev_opp_idx

@@ -1,44 +1,25 @@
-## Start with mamba (conda)
-```bash
-mamba env create -n pred_opp_traj python=3.10
-echo 'alias mam_pred_opp_traj='\''cd ~/<your_workspace> && mamba activate pred_opp_traj && export PYTHONPATH="/home/<your_name>/miniforge3/envs/pred_opp_traj/lib/python3.10/site-packages:$PYTHONPATH" && export PYTHONPATH=$PYTHONPATH:/home/<your_name>/<your_workspace>/src/pred_opp_traj'\''' >> ~/.bashrc
-```
-</br>
-
+## Getting started
 **Install Dependencies**
 ```bash
-mam_pred_opp_traj
-pip install -r src/pred_opp_traj/requirements.txt
+cd ~/Downloads && git clone https://github.com/geonwoo-kim-2002/libgp.git
+cd libgp && cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+cd build && sudo make install
 ```
 </br>
 
 **Install messages**
 ```bash
 cd ~/<your_workspace>/src
+git clone https://github.com/geonwoo-kim-2002/f1_msgs.git
 git clone https://github.com/geonwoo-kim-2002/pred_msgs.git
-git clone https://github.com/geonwoo-kim-2002/RL-SMPC_srv.git
 ```
 
 ## Getting Started
 ```bash
-mam_pred_opp_traj
-colcon build --symlink-install
+cd ~/<your_workspace>
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
-ros2 launch pred_opp_traj srv_pred_opp_traj.launch.py
+ros2 launch pred_opp_traj pred_opp_traj.launch.py
 ```
 </br>
-
-### ❌ Error
-```md
---- stderr: pred_opp_traj
-usage: setup.py [global_opts] cmd1 [cmd1_opts] [cmd2 [cmd2_opts] ...]
-   or: setup.py --help [cmd1 cmd2 ...]
-   or: setup.py --help-commands
-   or: setup.py cmd --help
-
-error: option --editable not recognized
-```
-**solution**
-```bash
-pip install --upgrade "setuptools<66"
-```

@@ -96,13 +96,13 @@ GPPrediction perform_gp_regression(
     Eigen::VectorXd params(param_dim);
     double length_scale = 1.0;
     double signal_std   = std::sqrt(0.5);
-
     // Covariance functions in libgp expect log-hyperparameters
     params << std::log(length_scale), std::log(signal_std);
     gp->covf().set_loghyper(params);
 
     // --- 4. Add training samples ---
-    for (size_t i = 0; i < t_samples.size(); ++i) {
+    for (size_t i = 0; i < t_samples.size(); ++i)
+    {
         double x_arr[1] = {t_samples[i]};
         gp->add_pattern(x_arr, y_normalized[i]);
     }
@@ -111,7 +111,8 @@ GPPrediction perform_gp_regression(
 
     // --- 5. Predictions ---
     GPPrediction result;
-    for (double t : pred_times) {
+    for (double t : pred_times)
+    {
         double x_arr[1] = {t};
         double pred_mean_norm = gp->f(x_arr);
         double pred_var = gp->var(x_arr);
@@ -180,7 +181,7 @@ void GPROppTrajNode::timer_callback()
     else
     {
         double curr_opp_s = sp_.find_s(curr_opp_.x, curr_opp_.y, 0.0);
-        int back_opp_idx = (int)(std::floor(curr_opp_s * 10)) % (int)det_arr_.detections.size();
+        // int back_opp_idx = (int)(std::floor(curr_opp_s * 10)) % (int)det_arr_.detections.size();
         int front_opp_idx = (int)(std::ceil(curr_opp_s * 10)) % (int)det_arr_.detections.size();
 
         pred_msgs::msg::DetectionArray d_copy, sorted_d_array;
@@ -228,8 +229,6 @@ void GPROppTrajNode::timer_callback()
             sorted_v_var.push_back(sorted_d_array.detections[i].v_var);
         }
 
-        // === Prediction Setup ===
-        // pred_time = np.arange(0, self.horizon * self.dt, self.dt) + self.curr_opp.v * 0.01
         // const double curr_v = 15.0; // Example value
         std::vector<double> pred_time;
         for (double t = 0.0; t < horizon_ * dt_; t += dt_) {
@@ -245,15 +244,13 @@ void GPROppTrajNode::timer_callback()
         pred_msgs::msg::DetectionArray pred_opp_traj;
         visualization_msgs::msg::MarkerArray markers;
         for (int i = 0; i < horizon_; i++) {
-            double input[1] = { i * dt_ };
-
             pred_msgs::msg::Detection d;
             d.dt   = i * dt_;
             d.x    = pred_x.mean[i];
             d.y    = pred_y.mean[i];
             d.yaw  = pred_yaw.mean[i];
             d.v    = pred_v.mean[i];
-            d.x_var   = pred_x.std_dev[i];   // 분산
+            d.x_var   = pred_x.std_dev[i];
             d.y_var   = pred_y.std_dev[i];
             d.yaw_var = pred_yaw.std_dev[i];
             d.v_var   = pred_v.std_dev[i];

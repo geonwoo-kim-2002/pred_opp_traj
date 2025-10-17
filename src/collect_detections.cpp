@@ -17,7 +17,7 @@ CollectDetection::CollectDetection()
   detection_array_pub_ = this->create_publisher<pred_msgs::msg::DetectionArray>("/detected_opp_traj", 1);
   detected_opp_traj_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/detected_opp_traj_marker", 1);
 
-  timer_ = this->create_wall_timer(std::chrono::milliseconds(1), std::bind(&CollectDetection::timer_callback, this));
+  timer_ = this->create_wall_timer(std::chrono::milliseconds(5), std::bind(&CollectDetection::timer_callback, this));
 }
 
 void CollectDetection::init_detections()
@@ -259,8 +259,24 @@ void CollectDetection::init_detections()
 void CollectDetection::detection_callback(const pred_msgs::msg::Detection::SharedPtr msg)
 {
     double now = this->get_clock()->now().seconds();
+    double dis = std::hypot(msg->x - prev_detection_.x, msg->y - prev_detection_.y);
+    std::cout << "dis: " << dis << std::endl;
+    if (dis > 0.2)
+    {
+        prev_detection_ = *msg;
+        return;
+    }
+    else if (dis < 0.1)
+    {
+        // std::cout << "dis: " << dis << std::endl;
+        return;
+    }
+
     if (now - prev_time_ >= 0.5)
+    {
         first_point_ = true;
+        // prev_detection_ = *msg;
+    }
 
     if (*msg != prev_detection_ && done_init_)
     {
@@ -294,13 +310,14 @@ void CollectDetection::detection_callback(const pred_msgs::msg::Detection::Share
 
                 prev_opp_idx_ = opp_idx;
                 prev_time_ = now;
+
+                pred_msgs::msg::Detection detection = *msg;
+                detection.dt = detect_array_.detections[opp_idx].dt;
+                detection.v = detect_array_.detections[opp_idx].v;
+                detect_array_.detections[opp_idx] = detection;
             }
 
-            pred_msgs::msg::Detection detection = *msg;
-            detection.dt = detect_array_.detections[opp_idx].dt;
-            detection.v = detect_array_.detections[opp_idx].v;
-            detect_array_.detections[opp_idx] = detection;
-            prev_detection_ = detection;
+            prev_detection_ = *msg;
         }
     }
 }

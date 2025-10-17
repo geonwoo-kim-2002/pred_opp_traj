@@ -49,13 +49,13 @@ GPROppTrajNode::GPROppTrajNode() : Node("gpr_opp_traj_node") {
     horizon_ = this->get_parameter("horizon").as_int();
     dt_ = this->get_parameter("dt").as_double();
 
-    det_sub_ = this->create_subscription<pred_msgs::msg::Detection>("/detection", 3, std::bind(&GPROppTrajNode::detection_callback, this, std::placeholders::_1));
-    det_arr_sub_ = this->create_subscription<pred_msgs::msg::DetectionArray>("/detected_opp_traj", 3, std::bind(&GPROppTrajNode::detection_array_callback, this, std::placeholders::_1));
+    det_sub_ = this->create_subscription<pred_msgs::msg::Detection>("/detection", rclcpp::QoS(rclcpp::KeepLast(1)), std::bind(&GPROppTrajNode::detection_callback, this, std::placeholders::_1));
+    det_arr_sub_ = this->create_subscription<pred_msgs::msg::DetectionArray>("/detected_opp_traj", rclcpp::QoS(rclcpp::KeepLast(1)), std::bind(&GPROppTrajNode::detection_array_callback, this, std::placeholders::_1));
 
-    pred_pub_ = this->create_publisher<pred_msgs::msg::DetectionArray>("/pred_opp_traj", 3);
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/pred_opp_traj_marker", 3);
+    pred_pub_ = this->create_publisher<pred_msgs::msg::DetectionArray>("/pred_opp_traj", rclcpp::QoS(rclcpp::KeepLast(1)));
+    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/pred_opp_traj_marker", rclcpp::QoS(rclcpp::KeepLast(1)));
 
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(1), std::bind(&GPROppTrajNode::timer_callback, this));
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(25), std::bind(&GPROppTrajNode::timer_callback, this));
   }
 
 void GPROppTrajNode::detection_callback(const pred_msgs::msg::Detection::SharedPtr msg)
@@ -176,7 +176,7 @@ void GPROppTrajNode::timer_callback()
         }
         pred_pub_->publish(pred_opp_traj);
         marker_pub_->publish(markers);
-        std::cout << "GPR Opponent Trajectory Prediction Time: " << (this->get_clock()->now().seconds() - curr_time) << std::endl;
+        // std::cout << "GPR Opponent Trajectory Prediction Time: " << (this->get_clock()->now().seconds() - curr_time) << std::endl;
     }
     else
     {
@@ -186,7 +186,7 @@ void GPROppTrajNode::timer_callback()
 
         pred_msgs::msg::DetectionArray d_copy, sorted_d_array;
         d_copy = det_arr_;
-        for (int i = 0; i < (int)((horizon_ + 5) * dt_ * 10) * 11; i++)
+        for (int i = 0; i < (int)((horizon_ + 5) * dt_ * 10) * 8; i++)
         {
             int idx = (front_opp_idx + i) % (int)d_copy.detections.size();
             if (idx == front_opp_idx)
@@ -274,8 +274,8 @@ void GPROppTrajNode::timer_callback()
             markers.markers.push_back(m);
 
             m.id = i + 100;
-            m.scale.x = d.x_var * 10;
-            m.scale.y = d.y_var * 10;
+            m.scale.x = d.x_var * 5;
+            m.scale.y = d.y_var * 5;
             m.scale.z = 0.0;
             m.color.r = 0.0;
             m.color.g = 0.0;
@@ -286,7 +286,7 @@ void GPROppTrajNode::timer_callback()
 
         pred_pub_->publish(pred_opp_traj);
         marker_pub_->publish(markers);
-        std::cout << "GPR Opponent Trajectory Prediction Time: " << (this->get_clock()->now().seconds() - curr_time) << std::endl;
+        // std::cout << "GPR Opponent Trajectory Prediction Time: " << (this->get_clock()->now().seconds() - curr_time) << std::endl;
     }
 }
 

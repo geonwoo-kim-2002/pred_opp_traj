@@ -34,12 +34,15 @@ private:
     bool is_scan_;
     bool is_ego_odom_;
     bool is_opp_odom_;
+    bool is_opp_;
 
     sensor_msgs::msg::LaserScan scan_;
     nav_msgs::msg::Odometry ego_odom_;
     nav_msgs::msg::Odometry opp_odom_;
     geometry_msgs::msg::PoseStamped ego_pose_;
     vision_msgs::msg::Detection2DArray opp_boxes_;
+    double prev_opp_x_;
+    double prev_opp_y_;
 
     void laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
     void ego_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);

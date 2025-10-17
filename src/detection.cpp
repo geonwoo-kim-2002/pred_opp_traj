@@ -8,6 +8,10 @@ DetectionNode::DetectionNode() : Node("detection_node")
     is_scan_ = false;
     is_ego_odom_ = false;
     is_opp_odom_ = false;
+    is_opp_ = false;
+
+    prev_opp_x_ = 0;
+    prev_opp_y_ = 0;
 
     if (is_simulation_)
     {
@@ -17,16 +21,16 @@ DetectionNode::DetectionNode() : Node("detection_node")
     }
     else
     {
-        laser_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", 3, std::bind(&DetectionNode::laser_callback, this, std::placeholders::_1));
-        // ego_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("/mcl_pose", 3, std::bind(&DetectionNode::ego_pose_callback, this, std::placeholders::_1));
-        ego_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/ego_racecar/odom", 3, std::bind(&DetectionNode::ego_odom_callback, this, std::placeholders::_1));
-        opp_box_sub_ = this->create_subscription<vision_msgs::msg::Detection2DArray>("/bounding_box", 3, std::bind(&DetectionNode::opp_box_callback, this, std::placeholders::_1));
+        laser_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", rclcpp::QoS(rclcpp::KeepLast(1)), std::bind(&DetectionNode::laser_callback, this, std::placeholders::_1));
+        ego_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("/mcl_pose", rclcpp::QoS(rclcpp::KeepLast(1)), std::bind(&DetectionNode::ego_pose_callback, this, std::placeholders::_1));
+        // ego_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/ego_racecar/odom", 3, std::bind(&DetectionNode::ego_odom_callback, this, std::placeholders::_1));
+        opp_box_sub_ = this->create_subscription<vision_msgs::msg::Detection2DArray>("/bounding_box", rclcpp::QoS(rclcpp::KeepLast(1)), std::bind(&DetectionNode::opp_box_callback, this, std::placeholders::_1));
     }
 
-    detect_pub_ = this->create_publisher<pred_msgs::msg::Detection>("/detection", 3);
-    detect_marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/detection_marker", 3);
+    detect_pub_ = this->create_publisher<pred_msgs::msg::Detection>("/detection", rclcpp::QoS(rclcpp::KeepLast(1)));
+    detect_marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("/detection_marker", rclcpp::QoS(rclcpp::KeepLast(1)));
 
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(1), std::bind(&DetectionNode::timer_callback, this));
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(25), std::bind(&DetectionNode::timer_callback, this));
 }
 
 void DetectionNode::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
@@ -58,6 +62,7 @@ void DetectionNode::opp_odom_callback(const nav_msgs::msg::Odometry::SharedPtr m
 
 void DetectionNode::opp_box_callback(const vision_msgs::msg::Detection2DArray::SharedPtr msg)
 {
+    is_opp_ = true;
     opp_boxes_ = *msg;
 }
 
@@ -154,12 +159,19 @@ void DetectionNode::timer_callback()
             double opp_x = ego_x + opp_local_x * cos(yaw) - opp_local_y * sin(yaw);
             double opp_y = ego_y + opp_local_x * sin(yaw) + opp_local_y * cos(yaw);
 
+            double dis = std::hypot(prev_opp_x_ - opp_x, prev_opp_y_ - opp_y);
+
             pred_msgs::msg::Detection detection_msg = pred_msgs::msg::Detection();
             detection_msg.dt = 0.0;
             detection_msg.x = opp_x;
             detection_msg.y = opp_y;
             detection_msg.yaw = 0.0;
             detection_msg.v = 0.0;
+            // if (dis < 0.03)
+            // {
+            //     detection_msg.v = -1.0;
+            // }
+            // std::cout << "detection dis: " << dis << std::endl;
             detection_msg.x_var = 0.05;
             detection_msg.y_var = 0.05;
             detection_msg.yaw_var = 0.05;
@@ -183,6 +195,11 @@ void DetectionNode::timer_callback()
             marker.color.b = 0.0;
             marker.color.a = 1.0;
             detect_marker_pub_->publish(marker);
+
+            prev_opp_x_ = opp_x;
+            prev_opp_y_ = opp_y;
+
+            is_opp_ = false;
         }
     }
 }

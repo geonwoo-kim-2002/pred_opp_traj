@@ -131,7 +131,7 @@ void GPROppTrajNode::timer_callback()
         return;
 
     double curr_time = this->get_clock()->now().seconds();
-    if (curr_opp_.v < 0.0)
+    if (curr_opp_.v < 1.0)
     {
         pred_msgs::msg::DetectionArray pred_opp_traj;
         visualization_msgs::msg::MarkerArray markers;
@@ -186,7 +186,7 @@ void GPROppTrajNode::timer_callback()
 
         pred_msgs::msg::DetectionArray d_copy, sorted_d_array;
         d_copy = det_arr_;
-        for (int i = 0; i < (int)((horizon_ + 5) * dt_ * 10) * 8; i++)
+        for (int i = 0; i < (int)((horizon_ + 5) * dt_ * 10) * 9; i++)
         {
             int idx = (front_opp_idx + i) % (int)d_copy.detections.size();
             if (idx == front_opp_idx)

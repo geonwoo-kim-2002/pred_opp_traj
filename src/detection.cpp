@@ -13,6 +13,22 @@ DetectionNode::DetectionNode() : Node("detection_node")
     prev_opp_x_ = 0;
     prev_opp_y_ = 0;
 
+    this->declare_parameter("waypoint_file", "");
+    this->declare_parameter("width_file", "");
+    std::string waypoint_file = this->get_parameter("waypoint_file").as_string();
+    std::string width_file = this->get_parameter("width_file").as_string();
+
+    track_ = Track(waypoint_file, width_file);
+
+    this->declare_parameter("dis_from_wall", 0.0);
+    this->declare_parameter("dis_other", 0.0);
+    this->declare_parameter("dis_static", 0.0);
+    this->declare_parameter("timeout", 0.0);
+    dis_from_wall_ = this->get_parameter("dis_from_wall").as_double();
+    dis_other_ = this->get_parameter("dis_other").as_double();
+    dis_static_ = this->get_parameter("dis_static").as_double();
+    timeout_ = this->get_parameter("timeout").as_double();
+
     if (is_simulation_)
     {
         laser_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", 3, std::bind(&DetectionNode::laser_callback, this, std::placeholders::_1));
@@ -142,6 +158,10 @@ void DetectionNode::timer_callback()
     }
     else
     {
+        static int count = 0;
+        static double prev_time = 0.0;
+        static bool first_detection = true;
+        static bool opp_is_static = true;
         if (is_scan_ && is_ego_odom_ && opp_boxes_.detections.size() > 0)
         {
             double ego_x = ego_pose_.pose.position.x;
@@ -158,15 +178,62 @@ void DetectionNode::timer_callback()
 
             double opp_x = ego_x + opp_local_x * cos(yaw) - opp_local_y * sin(yaw);
             double opp_y = ego_y + opp_local_x * sin(yaw) + opp_local_y * cos(yaw);
+            if (std::hypot(ego_x - opp_x, ego_y - opp_y) > 8.0)
+                return;
+
+            double opp_s = track_.csp.find_s(opp_x, opp_y, 0.0);
+            std::cout << "opp s: " << opp_s << std::endl;
+            int opp_width_idx = round(opp_s * 100);
+            double left_width = track_.lane[opp_width_idx].left_width - dis_from_wall_;
+            double right_width = track_.lane[opp_width_idx].right_width - dis_from_wall_;
+            double opp_lat_dis = track_.csp.calc_lateral_deviation(opp_x, opp_y, opp_s);
+            if ((opp_lat_dis < 0 && -opp_lat_dis > left_width) || (opp_lat_dis >= 0 && opp_lat_dis > right_width))
+                return;
+            std::cout << "opp lat dis: " << opp_lat_dis << std::endl;
 
             double dis = std::hypot(prev_opp_x_ - opp_x, prev_opp_y_ - opp_y);
+
+            if (dis > dis_other_)
+            {
+                first_detection = true;
+                opp_is_static = true;
+                count = 0;
+            }
+            else if (count == 0 && first_detection == true)
+            {
+                prev_opp_x_ = opp_x;
+                prev_opp_y_ = opp_y;
+                first_detection = false;
+            }
+            else if ((dis > dis_static_ && first_detection == false))
+            {
+                opp_is_static = false;
+                prev_opp_x_ = opp_x;
+                prev_opp_y_ = opp_y;
+                count = 0;
+            }
+            else if (first_detection == false)
+            {
+                count++;
+                // opp_v = 0.0;
+                if (count > 5)
+                {
+                    // opp_v = 0.0;
+                    opp_is_static = true;
+                }
+            }
+            
+            prev_time = this->get_clock()->now().seconds();
 
             pred_msgs::msg::Detection detection_msg = pred_msgs::msg::Detection();
             detection_msg.dt = 0.0;
             detection_msg.x = opp_x;
             detection_msg.y = opp_y;
             detection_msg.yaw = 0.0;
-            detection_msg.v = 0.0;
+            if (opp_is_static)
+                detection_msg.v = 0.0;
+            else
+                detection_msg.v = 3.0;
             // if (dis < 0.03)
             // {
             //     detection_msg.v = -1.0;
@@ -196,10 +263,15 @@ void DetectionNode::timer_callback()
             marker.color.a = 1.0;
             detect_marker_pub_->publish(marker);
 
-            prev_opp_x_ = opp_x;
-            prev_opp_y_ = opp_y;
-
             is_opp_ = false;
+        }
+
+        if (this->get_clock()->now().seconds() - prev_time > timeout_)
+        {
+            first_detection = true;
+            opp_is_static = true;
+            count = 0;
+            std::cout << "time reset" << std::endl;
         }
     }
 }

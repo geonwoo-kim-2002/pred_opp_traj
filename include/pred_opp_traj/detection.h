@@ -12,6 +12,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "pred_msgs/msg/detection.hpp"
+#include "LocalPath/Track.h"
 
 class DetectionNode : public rclcpp::Node
 {
@@ -43,6 +44,13 @@ private:
     vision_msgs::msg::Detection2DArray opp_boxes_;
     double prev_opp_x_;
     double prev_opp_y_;
+
+    Track track_;
+
+    double dis_from_wall_;
+    double dis_other_;
+    double dis_static_;
+    double timeout_;
 
     void laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
     void ego_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);

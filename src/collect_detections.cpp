@@ -260,17 +260,18 @@ void CollectDetection::detection_callback(const pred_msgs::msg::Detection::Share
 {
     double now = this->get_clock()->now().seconds();
     double dis = std::hypot(msg->x - prev_detection_.x, msg->y - prev_detection_.y);
-    std::cout << "dis: " << dis << std::endl;
-    if (dis > 0.2)
-    {
-        prev_detection_ = *msg;
+    // std::cout << "dis: " << dis << std::endl;
+    if (msg->v < 1.0)
         return;
-    }
-    else if (dis < 0.1)
-    {
-        // std::cout << "dis: " << dis << std::endl;
-        return;
-    }
+
+
+    // if (dis > 0.25) {
+    //     prev_detection_ = *msg;
+    //     return;
+    // } else if (dis < 0.15) {
+    //     // std::cout << "dis: " << dis << std::endl;
+    //     return;
+    // }
 
     if (now - prev_time_ >= 0.5)
     {

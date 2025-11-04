@@ -4,6 +4,17 @@ from launch.substitutions import Command
 from ament_index_python.packages import get_package_share_directory
 import os
 
+map = 'map1'
+path_csv = map + '_path.csv'
+width_csv = map + '_width_info.csv'
+
+def get_share_file(*args):
+    # return os.path.join(get_package_share_directory(package_name), *args)
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), *args)
+
+path_file = {'waypoint_file' : get_share_file('data', 'path', path_csv)}
+width_file = {'width_file' : get_share_file('data', 'path', width_csv)}
+
 def generate_launch_description():
     ld = LaunchDescription()
     config = os.path.join(
@@ -16,7 +27,9 @@ def generate_launch_description():
         package='pred_opp_traj',
         executable='detection_node',
         name='detection_node',
-        parameters=[config],
+        parameters=[path_file,
+                    width_file,
+                    config],
         output='screen'
     )
     collect_detection_node = Node(

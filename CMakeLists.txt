@@ -29,6 +29,9 @@ link_directories(/usr/local/lib) # libgp 라이브러리
 
 add_executable(detection_node
   src/detection.cpp
+  src/LocalPath/Track.cpp
+  src/LocalPath/CubicSpline1D.cpp
+  src/LocalPath/CubicSpline2D.cpp
 )
 ament_target_dependencies(detection_node
   rclcpp
@@ -38,6 +41,7 @@ ament_target_dependencies(detection_node
   pred_msgs
   visualization_msgs
   vision_msgs
+  f1_msgs
   tf2
   tf2_geometry_msgs
 )

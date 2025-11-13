@@ -124,7 +124,7 @@ class GPROppTraj(Node):
 
                 da_copy = copy.deepcopy(self.detection_array.detections)
                 sorted_detection_array = DetectionArray()
-                for i in range(int((self.horizon + 5) * self.dt * 3.7) * 10):
+                for i in range(int((self.horizon + 5) * self.dt * 10) * 10):
                     idx = (front_opp_idx + i) % len(da_copy)
                     if idx == front_opp_idx:
                         da_copy[idx].dt = (1 - (curr_opp_s * 10 - back_opp_idx)) * da_copy[idx].dt

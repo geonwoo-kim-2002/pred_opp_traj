@@ -1,8 +1,8 @@
 /**:
   ros__parameters:
-    map: 'iccas2025'
+    map: 'icra2025'
     horizon: 40
-    dt: 0.03
+    dt: 0.04
     is_simulation: False
 
     dis_from_wall: 0.15

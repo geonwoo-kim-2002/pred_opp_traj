@@ -18,6 +18,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(f1_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(rl_switching_mpc_srv REQUIRED)
 
 
 include_directories(
@@ -27,13 +28,16 @@ include_directories(
 )
 link_directories(/usr/local/lib) # libgp 라이브러리
 
-add_executable(detection_node
+add_executable(pred_opp_traj_srv
+  src/main.cpp
   src/detection.cpp
+  src/collect_detections.cpp
+  src/gpr_opp_traj.cpp
   src/LocalPath/Track.cpp
   src/LocalPath/CubicSpline1D.cpp
   src/LocalPath/CubicSpline2D.cpp
 )
-ament_target_dependencies(detection_node
+ament_target_dependencies(pred_opp_traj_srv
   rclcpp
   std_msgs
   nav_msgs
@@ -44,43 +48,14 @@ ament_target_dependencies(detection_node
   f1_msgs
   tf2
   tf2_geometry_msgs
+  rl_switching_mpc_srv
 )
-
-add_executable(collect_detection_node
-  src/collect_detections.cpp
-  src/LocalPath/CubicSpline1D.cpp
-  src/LocalPath/CubicSpline2D.cpp
-)
-ament_target_dependencies(collect_detection_node
-  rclcpp
-  std_msgs
-  pred_msgs
-  visualization_msgs
-  tf2
-  tf2_geometry_msgs
-  f1_msgs
-)
-
-add_executable(gpr_opp_traj_node
-  src/gpr_opp_traj.cpp
-  src/LocalPath/CubicSpline1D.cpp
-  src/LocalPath/CubicSpline2D.cpp
-)
-ament_target_dependencies(gpr_opp_traj_node
-  rclcpp
-  std_msgs
-  pred_msgs
-  visualization_msgs
-  f1_msgs
-)
-target_link_libraries(gpr_opp_traj_node
-  gp   # libgp.a
+target_link_libraries(pred_opp_traj_srv
+  gp
 )
 
 install(TARGETS
-  detection_node
-  collect_detection_node
-  gpr_opp_traj_node
+  pred_opp_traj_srv
   DESTINATION lib/${PROJECT_NAME}
 )
 

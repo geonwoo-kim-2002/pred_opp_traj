@@ -1,35 +1,19 @@
 #include "pred_opp_traj/collect_detections.h"
 
-CollectDetection::CollectDetection()
-: Node("collect_detection_node"),
-  done_init_(false),
+CollectDetection::CollectDetection(std::string map, std::string pkg_path):
+// : Node("collect_detection_node"),
+//   done_init_(false),
   first_point_(true),
   prev_time_(0.0),
   prev_opp_idx_(-1)
 {
-  this->declare_parameter<std::string>("map", "");
-  map_ = this->get_parameter("map").as_string();
-
-  init_detections();
-
-  detection_sub_ = this->create_subscription<pred_msgs::msg::Detection>("/detection", 1, std::bind(&CollectDetection::detection_callback, this, std::placeholders::_1));
-
-  detection_array_pub_ = this->create_publisher<pred_msgs::msg::DetectionArray>("/detected_opp_traj", 1);
-  detected_opp_traj_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/detected_opp_traj_marker", 1);
-
-  timer_ = this->create_wall_timer(std::chrono::milliseconds(5), std::bind(&CollectDetection::timer_callback, this));
-}
-
-void CollectDetection::init_detections()
-{
-    std::string pkg_path = ament_index_cpp::get_package_share_directory("pred_opp_traj");
-
-    std::string center_csv = pkg_path + "/data/path/" + map_ + "_path.csv";
+    std::string center_csv = pkg_path + "/data/path/" + map + "_path.csv";
     std::ifstream path_file;
     path_file.open(center_csv);
     if (!path_file.is_open())
     {
-        RCLCPP_ERROR(this->get_logger(), "Failed to load center path CSV");
+        // RCLCPP_ERROR(this->get_logger(), "Failed to load center path CSV");
+        std::cout << "Failed to load center path CSV" << std::endl;
         return;
     }
     else
@@ -63,13 +47,33 @@ void CollectDetection::init_detections()
         path_file.close();
         sp_.setCubicSpline2D(center_path);
     }
+    // this->declare_parameter<std::string>("map", "");
+    // map_ = this->get_parameter("map").as_string();
 
-    std::string race_csv = pkg_path + "/data/raceline/" + map_ + "_race_spline.csv";
+    // init_detections();
+
+    // detection_sub_ = this->create_subscription<pred_msgs::msg::Detection>("/detection", 1, std::bind(&CollectDetection::detection_callback, this, std::placeholders::_1));
+
+    // detection_array_pub_ = this->create_publisher<pred_msgs::msg::DetectionArray>("/detected_opp_traj", 1);
+    // detected_opp_traj_marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/detected_opp_traj_marker", 1);
+
+    // timer_ = this->create_wall_timer(std::chrono::milliseconds(5), std::bind(&CollectDetection::timer_callback, this));
+}
+
+void CollectDetection::init_detections(std::string map, std::string pkg_path)
+{
+    // std::string pkg_path = ament_index_cpp::get_package_share_directory("pred_opp_traj");
+    prev_time_ = 0.0;
+    prev_opp_idx_ = -1;
+
+    std::string race_csv = pkg_path + "/data/raceline/" + map + "_race_spline.csv";
     std::ifstream race_file;
     race_file.open(race_csv);
+    detect_array_.detections.clear();
     if (race_file.is_open())
     {
-        RCLCPP_INFO(this->get_logger(), "Using precomputed raceline spline data. %s", race_csv.c_str());
+        // RCLCPP_INFO(this->get_logger(), "Using precomputed raceline spline data. %s", race_csv.c_str());
+        std::cout << "Using precomputed raceline spline data. " << race_csv << std::endl;
         std::string line;
         bool first_line = true;
         while (std::getline(race_file, line))
@@ -104,7 +108,8 @@ void CollectDetection::init_detections()
     }
     else
     {
-        RCLCPP_WARN(this->get_logger(), "Raceline CSV not found, computing raceline...");
+        // RCLCPP_WARN(this->get_logger(), "Raceline CSV not found, computing raceline...");
+        std::cout << "Raceline CSV not found, computing raceline..." << std::endl;
 
         vector<double> center_x, center_y;
         for (double i = 0.0; i < sp_.s.back(); i += 0.1)
@@ -114,7 +119,7 @@ void CollectDetection::init_detections()
         }
 
         std::vector<double> states_s, t_s;
-        std::string states_csv = pkg_path + "/data/raceline/" + map_ + "_states.csv";
+        std::string states_csv = pkg_path + "/data/raceline/" + map + "_states.csv";
         std::ifstream states_file;
         states_file.open(states_csv);
         std::string line;
@@ -160,11 +165,12 @@ void CollectDetection::init_detections()
             }
             t_s = t_s_interp;
         }
-        RCLCPP_INFO(this->get_logger(), "Length of center path: %d, Length of states data: %d\n%f", (int)center_x.size(), (int)t_s.size(), t_s.back());
+        // RCLCPP_INFO(this->get_logger(), "Length of center path: %d, Length of states data: %d\n%f", (int)center_x.size(), (int)t_s.size(), t_s.back());
+        std::cout << "Length of center path: " << (int)center_x.size() << ", Length of states data: " << (int)t_s.size() << "\n" << t_s.back() << std::endl;
 
         std::vector<f1_msgs::msg::Waypoint> race_path;
         std::vector<double> race_v;
-        std::string race_path_csv = pkg_path + "/data/raceline/" + map_ + "_traj_race_cl.csv";
+        std::string race_path_csv = pkg_path + "/data/raceline/" + map + "_traj_race_cl.csv";
         std::ifstream race_path_file;
         race_path_file.open(race_path_csv);
         std::string line2;
@@ -235,12 +241,12 @@ void CollectDetection::init_detections()
             d.v = race_v[min_idx];
             d.x_var = 1.0;
             d.y_var = 1.0;
-            d.yaw_var = 0.5;
+            d.yaw_var = 1.0;
             d.v_var = 1.0;
             detect_array_.detections.push_back(d);
         }
 
-        std::string race_spline_csv = pkg_path + "/data/raceline/" + map_ + "_race_spline.csv";
+        std::string race_spline_csv = pkg_path + "/data/raceline/" + map + "_race_spline.csv";
         std::ofstream file(race_spline_csv);
         file << "dt,x,y,yaw,v,x_var,y_var,yaw_var,v_var\n";
         for (int i = 0; i < (int)detect_array_.detections.size(); i++)
@@ -249,39 +255,31 @@ void CollectDetection::init_detections()
             file << d.dt << "," << d.x << "," << d.y << "," << d.yaw << "," << d.v << ","
                  << d.x_var << "," << d.y_var << "," << d.yaw_var << "," << d.v_var << "\n";
         }
-        RCLCPP_INFO(this->get_logger(), "Save raceline spline: %s", race_spline_csv.c_str());
+        // RCLCPP_INFO(this->get_logger(), "Save raceline spline: %s", race_spline_csv.c_str());
+        std::cout << "Save raceline spline: " << race_spline_csv << std::endl;
     }
 
     done_init_ = true;
-    RCLCPP_INFO(this->get_logger(), "Detections initialized for map: %s", map_.c_str());
+    // RCLCPP_INFO(this->get_logger(), "Detections initialized for map: %s", map.c_str());
+    std::cout << "Detections initialized for map: " << map << std::endl;
 }
 
-void CollectDetection::detection_callback(const pred_msgs::msg::Detection::SharedPtr msg)
+void CollectDetection::add_detection(pred_msgs::msg::Detection detected_opp, double curr_time)
 {
-    double now = this->get_clock()->now().seconds();
-    double dis = std::hypot(msg->x - prev_detection_.x, msg->y - prev_detection_.y);
-    // std::cout << "dis: " << dis << std::endl;
-    if (msg->v < 1.0)
+    // double dis = std::hypot(detected_opp.x - prev_detection_.x, detected_opp.y - prev_detection_.y);
+    if (detected_opp.v < 1.0)
         return;
 
-
-    // if (dis > 0.25) {
-    //     prev_detection_ = *msg;
-    //     return;
-    // } else if (dis < 0.15) {
-    //     // std::cout << "dis: " << dis << std::endl;
-    //     return;
-    // }
-
-    if (now - prev_time_ >= 0.5)
+    if (curr_time - prev_time_ >= 0.1)
     {
         first_point_ = true;
-        // prev_detection_ = *msg;
+        // prev_detection_ = detected_opp;
     }
 
-    if (*msg != prev_detection_ && done_init_)
+    if (detected_opp != prev_detection_)
     {
-        double curr_opp_s = sp_.find_s(msg->x, msg->y, 0.0);
+        double curr_opp_s = sp_.find_s(detected_opp.x, detected_opp.y, 0.0);
+        // std::cout << "x: " << detected_opp.x << ", y: " << detected_opp.y << ", curr_opp_s: " << curr_opp_s << std::endl;
         if ((int)std::round(curr_opp_s * 100) % 10 <= 2 || (int)std::round(curr_opp_s * 100) % 10 >= 8)
         {
             int opp_idx = std::round(curr_opp_s * 10);
@@ -291,12 +289,13 @@ void CollectDetection::detection_callback(const pred_msgs::msg::Detection::Share
             if (first_point_)
             {
                 first_point_ = false;
-                prev_time_ = now;
+                prev_time_ = curr_time;
                 prev_opp_idx_ = opp_idx;
             }
             else
             {
-                double dt = now - prev_time_;
+                double dt = curr_time - prev_time_;
+                std::cout << "opp s: " << curr_opp_s << ", opp idx: " << opp_idx << ", dt: " << dt << ", x: " << detected_opp.x << ", y: " << detected_opp.y << std::endl;
 
                 if (opp_idx - prev_opp_idx_ < -(int)detect_array_.detections.size() / 2)
                 {
@@ -310,64 +309,131 @@ void CollectDetection::detection_callback(const pred_msgs::msg::Detection::Share
                 }
 
                 prev_opp_idx_ = opp_idx;
-                prev_time_ = now;
+                prev_time_ = curr_time;
 
-                pred_msgs::msg::Detection detection = *msg;
+                pred_msgs::msg::Detection detection = detected_opp;
                 detection.dt = detect_array_.detections[opp_idx].dt;
                 detection.v = detect_array_.detections[opp_idx].v;
                 detect_array_.detections[opp_idx] = detection;
             }
 
-            prev_detection_ = *msg;
+            prev_detection_ = detected_opp;
         }
     }
 }
 
-void CollectDetection::timer_callback()
-{
-    if (!done_init_)
-        return;
+// void CollectDetection::detection_callback(const pred_msgs::msg::Detection::SharedPtr msg)
+// {
+//     double now = this->get_clock()->now().seconds();
+//     double dis = std::hypot(msg->x - prev_detection_.x, msg->y - prev_detection_.y);
+//     // std::cout << "dis: " << dis << std::endl;
+//     if (msg->v < 1.0)
+//         return;
 
-    visualization_msgs::msg::MarkerArray marker_array;
-    for (size_t i = 0; i < detect_array_.detections.size(); i++)
-    {
-        auto detection = detect_array_.detections[i];
-        visualization_msgs::msg::Marker marker;
-        marker.header.frame_id = "map";
-        marker.header.stamp = this->now();
-        marker.ns = "detected_opp_traj";
-        marker.id = i;
-        marker.type = visualization_msgs::msg::Marker::SPHERE;
-        marker.action = visualization_msgs::msg::Marker::ADD;
 
-        marker.pose.position.x = detection.x;
-        marker.pose.position.y = detection.y;
+//     // if (dis > 0.25) {
+//     //     prev_detection_ = *msg;
+//     //     return;
+//     // } else if (dis < 0.15) {
+//     //     // std::cout << "dis: " << dis << std::endl;
+//     //     return;
+//     // }
 
-        tf2::Quaternion q;
-        q.setRPY(0, 0, detection.yaw);
-        marker.pose.orientation = tf2::toMsg(q);
+//     if (now - prev_time_ >= 0.5)
+//     {
+//         first_point_ = true;
+//         // prev_detection_ = *msg;
+//     }
 
-        marker.scale.x = 0.05;
-        marker.scale.y = 0.05;
-        marker.scale.z = 1e-5;
+//     if (*msg != prev_detection_ && done_init_)
+//     {
+//         double curr_opp_s = sp_.find_s(msg->x, msg->y, 0.0);
+//         if ((int)std::round(curr_opp_s * 100) % 10 <= 2 || (int)std::round(curr_opp_s * 100) % 10 >= 8)
+//         {
+//             int opp_idx = std::round(curr_opp_s * 10);
+//             if (opp_idx >= (int)detect_array_.detections.size())
+//                 opp_idx -= detect_array_.detections.size();
 
-        marker.color.r = 0.0;
-        marker.color.g = 1.0;
-        marker.color.b = 0.0;
-        marker.color.a = 1.0;
+//             if (first_point_)
+//             {
+//                 first_point_ = false;
+//                 prev_time_ = now;
+//                 prev_opp_idx_ = opp_idx;
+//             }
+//             else
+//             {
+//                 double dt = now - prev_time_;
 
-        marker_array.markers.push_back(marker);
-    }
+//                 if (opp_idx - prev_opp_idx_ < -(int)detect_array_.detections.size() / 2)
+//                 {
+//                     for (int i = prev_opp_idx_; i < opp_idx + (int)detect_array_.detections.size(); i++)
+//                         detect_array_.detections[(i + 1) % detect_array_.detections.size()].dt = dt / (opp_idx + detect_array_.detections.size() - prev_opp_idx_);
+//                 }
+//                 else
+//                 {
+//                     for (int i = prev_opp_idx_; i < opp_idx; i++)
+//                         detect_array_.detections[(i + 1)].dt = dt / (opp_idx - prev_opp_idx_);
+//                 }
 
-    detection_array_pub_->publish(detect_array_);
-    detected_opp_traj_marker_pub_->publish(marker_array);
-}
+//                 prev_opp_idx_ = opp_idx;
+//                 prev_time_ = now;
 
-int main(int argc, char **argv)
-{
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<CollectDetection>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
-}
+//                 pred_msgs::msg::Detection detection = *msg;
+//                 detection.dt = detect_array_.detections[opp_idx].dt;
+//                 detection.v = detect_array_.detections[opp_idx].v;
+//                 detect_array_.detections[opp_idx] = detection;
+//             }
+
+//             prev_detection_ = *msg;
+//         }
+//     }
+// }
+
+// void CollectDetection::timer_callback()
+// {
+//     if (!done_init_)
+//         return;
+
+//     visualization_msgs::msg::MarkerArray marker_array;
+//     for (size_t i = 0; i < detect_array_.detections.size(); i++)
+//     {
+//         auto detection = detect_array_.detections[i];
+//         visualization_msgs::msg::Marker marker;
+//         marker.header.frame_id = "map";
+//         marker.header.stamp = this->now();
+//         marker.ns = "detected_opp_traj";
+//         marker.id = i;
+//         marker.type = visualization_msgs::msg::Marker::SPHERE;
+//         marker.action = visualization_msgs::msg::Marker::ADD;
+
+//         marker.pose.position.x = detection.x;
+//         marker.pose.position.y = detection.y;
+
+//         tf2::Quaternion q;
+//         q.setRPY(0, 0, detection.yaw);
+//         marker.pose.orientation = tf2::toMsg(q);
+
+//         marker.scale.x = 0.05;
+//         marker.scale.y = 0.05;
+//         marker.scale.z = 1e-5;
+
+//         marker.color.r = 0.0;
+//         marker.color.g = 1.0;
+//         marker.color.b = 0.0;
+//         marker.color.a = 1.0;
+
+//         marker_array.markers.push_back(marker);
+//     }
+
+//     detection_array_pub_->publish(detect_array_);
+//     detected_opp_traj_marker_pub_->publish(marker_array);
+// }
+
+// int main(int argc, char **argv)
+// {
+//     rclcpp::init(argc, argv);
+//     auto node = std::make_shared<CollectDetection>();
+//     rclcpp::spin(node);
+//     rclcpp::shutdown();
+//     return 0;
+// }

@@ -4,16 +4,9 @@ from launch.substitutions import Command
 from ament_index_python.packages import get_package_share_directory
 import os
 
-map = 'map1'
-path_csv = map + '_path.csv'
-width_csv = map + '_width_info.csv'
-
 def get_share_file(*args):
     # return os.path.join(get_package_share_directory(package_name), *args)
     return os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), *args)
-
-path_file = {'waypoint_file' : get_share_file('data', 'path', path_csv)}
-width_file = {'width_file' : get_share_file('data', 'path', width_csv)}
 
 def generate_launch_description():
     ld = LaunchDescription()
@@ -23,30 +16,12 @@ def generate_launch_description():
         'params.yaml'
         )
 
-    detection_node = Node(
+    pred_opp_traj_srv = Node(
         package='pred_opp_traj',
-        executable='detection_node',
-        name='detection_node',
-        parameters=[path_file,
-                    width_file,
-                    config],
-        output='screen'
-    )
-    collect_detection_node = Node(
-        package='pred_opp_traj',
-        executable='collect_detection_node',
-        name='collect_detection_node',
+        executable='pred_opp_traj_srv',
+        name='pred_opp_traj_srv',
         parameters=[config],
         output='screen'
     )
-    gpr_opp_traj_node = Node(
-        package='pred_opp_traj',
-        executable='gpr_opp_traj_node',
-        name='gpr_opp_traj_node',
-        parameters=[config],
-        output='screen'
-    )
-    ld.add_action(detection_node)
-    ld.add_action(collect_detection_node)
-    ld.add_action(gpr_opp_traj_node)
+    ld.add_action(pred_opp_traj_srv)
     return ld

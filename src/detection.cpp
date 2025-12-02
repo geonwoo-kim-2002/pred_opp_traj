@@ -88,10 +88,10 @@ pred_msgs::msg::Detection DetectionNode::detect(const sensor_msgs::msg::LaserSca
             detect_opp.yaw = opp_yaw;
             detect_opp.v = hypot(opp_odom.twist.twist.linear.x, opp_odom.twist.twist.linear.y);
 
-            detect_opp.x_var = 0.001;
-            detect_opp.y_var = 0.001;
-            detect_opp.yaw_var = 0.05;
-            detect_opp.v_var = 0.05;
+            detect_opp.x_var = 0.01;
+            detect_opp.y_var = 0.01;
+            detect_opp.yaw_var = 0.01;
+            detect_opp.v_var = 0.01;
 
             break;
         }

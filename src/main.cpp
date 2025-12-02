@@ -144,12 +144,12 @@ private:
                 q.setRPY(0, 0, detection.yaw);
                 marker.pose.orientation = tf2::toMsg(q);
 
-                marker.scale.x = 0.05;
-                marker.scale.y = 0.05;
+                marker.scale.x = 0.1;
+                marker.scale.y = 0.1;
                 marker.scale.z = 1e-5;
 
-                marker.color.r = 0.0;
-                marker.color.g = 1.0;
+                marker.color.r = 1.0;
+                marker.color.g = 0.0;
                 marker.color.b = 0.0;
                 marker.color.a = 1.0;
 
@@ -163,7 +163,8 @@ private:
                 opp_s += track_.csp.s.back();
             else if (opp_s - ego_s > track_.csp.s.back() / 2.0)
                 opp_s -= track_.csp.s.back();
-            if (std::abs(opp_s - ego_s) <= 7.0)
+
+            if (opp_s - ego_s <= 7.0 && opp_s - ego_s >= -1.0)
             {
                 pred_msgs::msg::DetectionArray pred_opp_traj = gpr_opp_traj_.predict_trajectory(detected_opp, collect_detections_.detect_array_);
                 response->pred_opp_traj = pred_opp_traj;
@@ -190,15 +191,16 @@ private:
             m.pose.position.y = d.y;
             m.pose.orientation.w = 1.0;
             m.scale.x = 0.1; m.scale.y = 0.1; m.scale.z = 0.01;
-            m.color.r = d.v / 10.0;
-            m.color.g = 0.0;
-            m.color.b = -(d.v - 10.0) / 10.0;
+            // m.color.r = d.v / 10.0;
+            // m.color.g = 0.0;
+            // m.color.b = -(d.v - 10.0) / 10.0;
+            m.color.g = 1.0;
             m.color.a = 1.0;
             markers.markers.push_back(m);
 
             m.id = i + 100;
-            m.scale.x = d.x_var * 2;
-            m.scale.y = d.y_var * 2;
+            m.scale.x = d.x_var * 5;
+            m.scale.y = d.y_var * 5;
             m.scale.z = 0.0;
             m.color.r = 0.0;
             m.color.g = 0.0;

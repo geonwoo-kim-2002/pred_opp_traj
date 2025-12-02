@@ -2,7 +2,7 @@
   ros__parameters:
     map: 'icra2025'
     horizon: 40
-    dt: 0.04
+    dt: 0.043
     is_simulation: False
 
     dis_from_wall: 0.15

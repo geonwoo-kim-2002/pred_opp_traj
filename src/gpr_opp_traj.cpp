@@ -152,10 +152,11 @@ pred_msgs::msg::DetectionArray GPROppTrajNode::predict_trajectory(const pred_msg
             int idx = (front_opp_idx + i) % (int)d_copy.detections.size();
             if (idx == front_opp_idx)
             {
-                if (front_opp_idx - curr_opp_s * 10 < 0.0)
-                    d_copy.detections[idx].dt = (front_opp_idx + (int)det_arr.detections.size() - curr_opp_s * 10) * d_copy.detections[idx].dt;
-                else
-                    d_copy.detections[idx].dt = (front_opp_idx - curr_opp_s * 10) * d_copy.detections[idx].dt;
+                // if (front_opp_idx - curr_opp_s * 10 < 0.0)
+                //     d_copy.detections[idx].dt = (front_opp_idx + (int)det_arr.detections.size() - curr_opp_s * 10) * d_copy.detections[idx].dt;
+                // else
+                //     d_copy.detections[idx].dt = (front_opp_idx - curr_opp_s * 10) * d_copy.detections[idx].dt;
+                d_copy.detections[idx].dt = d_copy.detections[idx].dt / 1000;
             }
             else
             {
@@ -163,8 +164,8 @@ pred_msgs::msg::DetectionArray GPROppTrajNode::predict_trajectory(const pred_msg
                     d_copy.detections[idx].dt = d_copy.detections[d_copy.detections.size() - 1].dt + d_copy.detections[idx].dt;
                 else
                     d_copy.detections[idx].dt = d_copy.detections[idx - 1].dt + d_copy.detections[idx].dt;
+                sorted_d_array.detections.push_back(d_copy.detections[idx]);
             }
-            sorted_d_array.detections.push_back(d_copy.detections[idx]);
         }
 
         std::vector<double> sorted_t, sorted_x, sorted_y, sorted_yaw, sorted_v, sorted_x_var, sorted_y_var, sorted_yaw_var, sorted_v_var;
@@ -173,10 +174,14 @@ pred_msgs::msg::DetectionArray GPROppTrajNode::predict_trajectory(const pred_msg
         sorted_y.push_back(curr_opp.y);
         sorted_yaw.push_back(curr_opp.yaw);
         sorted_v.push_back(curr_opp.v);
-        sorted_x_var.push_back(curr_opp.x_var);
-        sorted_y_var.push_back(curr_opp.y_var);
-        sorted_yaw_var.push_back(curr_opp.yaw_var);
-        sorted_v_var.push_back(curr_opp.v_var);
+        // sorted_x_var.push_back(curr_opp.x_var);
+        // sorted_y_var.push_back(curr_opp.y_var);
+        // sorted_yaw_var.push_back(curr_opp.yaw_var);
+        // sorted_v_var.push_back(curr_opp.v_var);
+        sorted_x_var.push_back(0.01);
+        sorted_y_var.push_back(0.01);
+        sorted_yaw_var.push_back(0.01);
+        sorted_v_var.push_back(0.01);
         for (size_t i = 0; i < sorted_d_array.detections.size(); i++)
         {
             sorted_t.push_back(sorted_d_array.detections[i].dt);

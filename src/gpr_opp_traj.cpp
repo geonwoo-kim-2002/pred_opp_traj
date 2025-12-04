@@ -191,10 +191,11 @@ void GPROppTrajNode::timer_callback()
             int idx = (front_opp_idx + i) % (int)d_copy.detections.size();
             if (idx == front_opp_idx)
             {
-                if (front_opp_idx - curr_opp_s * 10 < 0.0)
-                    d_copy.detections[idx].dt = (front_opp_idx + (int)det_arr_.detections.size() - curr_opp_s * 10) * d_copy.detections[idx].dt;
-                else
-                    d_copy.detections[idx].dt = (front_opp_idx - curr_opp_s * 10) * d_copy.detections[idx].dt;
+                // if (front_opp_idx - curr_opp_s * 10 < 0.0)
+                //     d_copy.detections[idx].dt = (front_opp_idx + (int)det_arr_.detections.size() - curr_opp_s * 10) * d_copy.detections[idx].dt;
+                // else
+                //     d_copy.detections[idx].dt = (front_opp_idx - curr_opp_s * 10) * d_copy.detections[idx].dt;
+                d_copy.detections[idx].dt = d_copy.detections[idx].dt / 1000;
             }
             else
             {
@@ -202,8 +203,8 @@ void GPROppTrajNode::timer_callback()
                     d_copy.detections[idx].dt = d_copy.detections[d_copy.detections.size() - 1].dt + d_copy.detections[idx].dt;
                 else
                     d_copy.detections[idx].dt = d_copy.detections[idx - 1].dt + d_copy.detections[idx].dt;
+                sorted_d_array.detections.push_back(d_copy.detections[idx]);
             }
-            sorted_d_array.detections.push_back(d_copy.detections[idx]);
         }
 
         std::vector<double> sorted_t, sorted_x, sorted_y, sorted_yaw, sorted_v, sorted_x_var, sorted_y_var, sorted_yaw_var, sorted_v_var;

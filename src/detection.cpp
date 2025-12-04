@@ -126,10 +126,10 @@ void DetectionNode::timer_callback()
                 detection_msg.yaw = opp_yaw;
                 detection_msg.v = hypot(opp_odom_.twist.twist.linear.x, opp_odom_.twist.twist.linear.y);
 
-                detection_msg.x_var = 0.05;
-                detection_msg.y_var = 0.05;
-                detection_msg.yaw_var = 0.05;
-                detection_msg.v_var = 0.05;
+                detection_msg.x_var = 0.01;
+                detection_msg.y_var = 0.01;
+                detection_msg.yaw_var = 0.01;
+                detection_msg.v_var = 0.01;
 
                 detect_pub_->publish(detection_msg);
 
@@ -222,7 +222,7 @@ void DetectionNode::timer_callback()
                     opp_is_static = true;
                 }
             }
-            
+
             prev_time = this->get_clock()->now().seconds();
 
             pred_msgs::msg::Detection detection_msg = pred_msgs::msg::Detection();

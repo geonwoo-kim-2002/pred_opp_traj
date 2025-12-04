@@ -235,7 +235,7 @@ void CollectDetection::init_detections()
             d.v = race_v[min_idx];
             d.x_var = 1.0;
             d.y_var = 1.0;
-            d.yaw_var = 0.5;
+            d.yaw_var = 1.0;
             d.v_var = 1.0;
             detect_array_.detections.push_back(d);
         }
@@ -282,7 +282,7 @@ void CollectDetection::detection_callback(const pred_msgs::msg::Detection::Share
     if (*msg != prev_detection_ && done_init_)
     {
         double curr_opp_s = sp_.find_s(msg->x, msg->y, 0.0);
-        if ((int)std::round(curr_opp_s * 100) % 10 <= 2 || (int)std::round(curr_opp_s * 100) % 10 >= 8)
+        if ((int)std::round(curr_opp_s * 100) % 10 <= 3 || (int)std::round(curr_opp_s * 100) % 10 >= 7)
         {
             int opp_idx = std::round(curr_opp_s * 10);
             if (opp_idx >= (int)detect_array_.detections.size())
@@ -315,6 +315,15 @@ void CollectDetection::detection_callback(const pred_msgs::msg::Detection::Share
                 pred_msgs::msg::Detection detection = *msg;
                 detection.dt = detect_array_.detections[opp_idx].dt;
                 detection.v = detect_array_.detections[opp_idx].v;
+
+                if (std::hypot(detection.x - detect_array_.detections[opp_idx].x, detection.y - detect_array_.detections[opp_idx].y) > 0.4)
+                {
+                    detection.x_var = 0.5;
+                    detection.y_var = 0.5;
+                    detection.yaw_var = 0.5;
+                    detection.v_var = 0.5;
+                }
+
                 detect_array_.detections[opp_idx] = detection;
             }
 

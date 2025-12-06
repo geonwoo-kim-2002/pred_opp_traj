@@ -4,7 +4,7 @@ from launch.substitutions import Command
 from ament_index_python.packages import get_package_share_directory
 import os
 
-map = 'map1'
+map = 'map9'
 path_csv = map + '_path.csv'
 width_csv = map + '_width_info.csv'
 

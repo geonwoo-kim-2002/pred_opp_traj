@@ -4,7 +4,7 @@ from Spline import Spline2D
 import matplotlib.pyplot as plt
 import math
 
-map = 'map3_inverse'
+map = 'map9'
 path = pd.read_csv(f'pred_opp_traj/data/path/{map}_path.csv')
 width = pd.read_csv(f'pred_opp_traj/data/path/{map}_width_info.csv')
 left_lane = pd.read_csv(f'pred_opp_traj/data/lane/{map}_left.csv')
